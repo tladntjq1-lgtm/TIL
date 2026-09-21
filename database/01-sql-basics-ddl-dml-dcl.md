@@ -41,6 +41,17 @@ WHERE total > 10000;   -- ❌ WHERE가 SELECT보다 먼저 실행되므로 total
 - 중복 값을 가질 수 없다.
 - `NULL` 값을 가질 수 없다.
 
+### PRIMARY KEY vs UNIQUE
+
+둘 다 "중복 불가"라는 점은 같지만, `NULL` 허용 여부가 다르다.
+
+| 제약 | 중복 | NULL |
+|---|---|---|
+| `PRIMARY KEY` | 불가 | **불가** |
+| `UNIQUE` | 불가 | **허용** (단, NULL은 여러 번 허용) |
+
+한 테이블에 `PRIMARY KEY`는 하나만 지정할 수 있지만, `UNIQUE`는 여러 열에 걸어둘 수 있다 (예: `email` 컬럼).
+
 ## 타입이 맞지 않는 값을 넣으면?
 
 `INT` 타입 열에 문자열(`'홍길동'`)을 넣으려 하면 `invalid input syntax for type integer` 같은 오류가 발생하며 해당 `INSERT`가 거부된다. 데이터베이스가 잘못된 타입의 데이터가 저장되는 것을 자동으로 방지해준다.
