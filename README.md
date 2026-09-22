@@ -1,7 +1,7 @@
 # TIL (Today I Learned)
 
 부트캠프에서 공부한 내용을 주제별로 정리한 기록입니다.
-Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, Django, 실전 프로젝트까지의 학습 로그를 담고 있습니다.
+Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, Django, AI/ML 이론, 실전 프로젝트까지의 학습 로그를 담고 있습니다.
 
 ## 📚 Python
 
@@ -37,6 +37,12 @@ Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 
 - [01. 개발 환경 세팅 (Git, VS Code, venv)](git-github/01-dev-environment-setup.md)
 - [02. Git 기초 명령어와 3영역 모델](git-github/02-git-basics-commands.md)
 - [03. 팀 협업 워크플로우 (브랜치, PR, 머지)](git-github/03-team-collaboration-workflow.md)
+
+## 🧠 AI / ML 이론
+
+- [01. 어텐션 메커니즘과 Seq2Seq의 병목 현상](ai-ml/01-attention-and-seq2seq-bottleneck.md)
+- [02. 프롬프팅 기법 (Zero-shot / Few-shot / Fine-tuning)](ai-ml/02-prompting-techniques.md)
+- [03. 경사하강법의 학습률과 과적합](ai-ml/03-gradient-descent-and-overfitting.md)
 
 ## 🌐 Django
 
