@@ -24,6 +24,7 @@ Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 
 - [02. ERD와 테이블 관계 (1:N, N:M)](database/02-erd-and-relationships.md)
 - [03. JOIN과 집합 연산](database/03-join-and-set-operations.md)
 - [04. PostgreSQL 실습 (스키마/테이블/CRUD)](database/04-postgresql-practice.md)
+- [05. 서브쿼리 (IN/NOT EXISTS, 인라인 뷰, 스칼라 서브쿼리)](database/05-subqueries.md)
 
 ## 📊 Data Analysis (Pandas)
 
