@@ -44,6 +44,8 @@ Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 
 - [01. 어텐션 메커니즘과 Seq2Seq의 병목 현상](ai-ml/01-attention-and-seq2seq-bottleneck.md)
 - [02. 프롬프팅 기법 (Zero-shot / Few-shot / Fine-tuning)](ai-ml/02-prompting-techniques.md)
 - [03. 경사하강법의 학습률과 과적합](ai-ml/03-gradient-descent-and-overfitting.md)
+- [04. 선형 회귀와 손실 함수 (MSE/MAE)](ai-ml/04-linear-regression-and-loss-functions.md)
+- [05. AI 활용 전략 (툴 스택, 데블스 애드버킷)](ai-ml/05-ai-tool-strategies.md)
 
 ## 🌐 Django
 
