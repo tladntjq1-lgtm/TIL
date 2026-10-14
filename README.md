@@ -1,7 +1,7 @@
 # TIL (Today I Learned)
 
 부트캠프에서 공부한 내용을 주제별로 정리한 기록입니다.
-Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, Django, AI/ML 이론, 실전 프로젝트까지의 학습 로그를 담고 있습니다.
+Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, Django, Next.js, AI/ML 이론, 실전 프로젝트까지의 학습 로그를 담고 있습니다.
 
 ## 📚 Python
 
@@ -51,6 +51,10 @@ Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 
 ## 🌐 Django
 
 - [01. 프로젝트 세팅과 DB 연동](django/01-project-setup-and-db-connection.md)
+
+## ⚛️ Next.js
+
+- [01. App Router 동적 라우팅과 TypeScript 선택 속성](nextjs/01-app-router-and-typescript-basics.md)
 
 ## 🚀 Projects
 
