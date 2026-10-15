@@ -32,6 +32,7 @@ Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 
 - [02. groupby, agg, value_counts](data-analysis/02-groupby-agg-value-counts.md)
 - [03. 결측치, 이상치, 타입 변환](data-analysis/03-missing-values-outliers-typeconversion.md)
 - [04. 타이타닉 데이터로 보는 EDA 전체 사이클](data-analysis/04-titanic-eda-workflow.md)
+- [05. 로컬 데이터 분석 자동화 파이프라인 (API 수집 → 검증 → LLM 요약 → PDF)](data-analysis/05-local-analysis-automation-pipeline.md)
 
 ## 🔧 Git / GitHub
 
