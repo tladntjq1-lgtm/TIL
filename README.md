@@ -1,7 +1,7 @@
 # TIL (Today I Learned)
 
 부트캠프에서 공부한 내용을 주제별로 정리한 기록입니다.
-Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, Django, Next.js, AI/ML 이론, 실전 프로젝트까지의 학습 로그를 담고 있습니다.
+Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 프론트엔드(HTML/CSS/JS), Django, Next.js, AI/ML 이론, 실전 프로젝트까지의 학습 로그를 담고 있습니다.
 
 ## 📚 Python
 
@@ -25,6 +25,7 @@ Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 
 - [03. JOIN과 집합 연산](database/03-join-and-set-operations.md)
 - [04. PostgreSQL 실습 (스키마/테이블/CRUD)](database/04-postgresql-practice.md)
 - [05. 서브쿼리 (IN/NOT EXISTS, 인라인 뷰, 스칼라 서브쿼리)](database/05-subqueries.md)
+- [06. SQL 분석과 pandas 교차 검증 (품질 검사, date spine, 읽기 전용 연결)](database/06-sql-analysis-and-pandas-cross-validation.md)
 
 ## 📊 Data Analysis (Pandas)
 
@@ -53,6 +54,11 @@ Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 
 ## 🌐 Django
 
 - [01. 프로젝트 세팅과 DB 연동](django/01-project-setup-and-db-connection.md)
+
+## 🎨 Front-end (HTML / CSS / JavaScript)
+
+- [01. Flexbox, Grid, 반응형 레이아웃](frontend/01-flexbox-grid-and-responsive-layout.md)
+- [02. JavaScript 기초: DOM 이벤트, 입력 검증, 함수·배열·객체](frontend/02-javascript-dom-functions-arrays.md)
 
 ## ⚛️ Next.js
 
