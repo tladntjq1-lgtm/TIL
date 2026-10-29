@@ -1,7 +1,7 @@
 # TIL (Today I Learned)
 
 부트캠프에서 공부한 내용을 주제별로 정리한 기록입니다.
-Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 프론트엔드(HTML/CSS/JS), Django, Next.js, AI/ML 이론, 실전 프로젝트까지의 학습 로그를 담고 있습니다.
+Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 프론트엔드(HTML/CSS/JS), 백엔드(FastAPI), Django, Next.js, AI/ML 이론, 실전 프로젝트까지의 학습 로그를 담고 있습니다.
 
 ## 📚 Python
 
@@ -50,6 +50,10 @@ Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 
 - [05. AI 활용 전략 (툴 스택, 데블스 애드버킷)](ai-ml/05-ai-tool-strategies.md)
 - [06. AI 리터러시 (환각 현상, 인지 부채, SIFT 검증법, 데이터 편향성)](ai-ml/06-ai-literacy-hallucination-and-bias.md)
 - [07. 환각의 3가지 유형, 지식 컷오프, 자동화 편향](ai-ml/07-hallucination-types-cutoff-and-automation-bias.md)
+
+## 🛠️ Backend (FastAPI)
+
+- [01. FastAPI 기초: 요청 흐름, Parameter, Pydantic, 상태 코드](backend/01-fastapi-basics-and-request-parameters.md)
 
 ## 🌐 Django
 

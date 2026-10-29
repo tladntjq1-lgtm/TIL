@@ -72,3 +72,9 @@ git stash pop              # 아까 미뤄둔 작업을 다시 불러오기
 ```
 
 `merge` 하기 **전에** `stash`로 먼저 작업을 치워두는 이유: 머지 시점에 원래 수정하던 내용과 충돌이 일어나지 않도록, 최신 코드를 먼저 반영한 뒤 미뤄둔 작업을 마지막에 불러오기 위함이다.
+
+## .gitignore와 VS Code의 변경 표시 (2026-10-29)
+
+- `.gitignore`는 `.venv/`, `__pycache__/`, `.env` 같은 파일을 Git 추적에서 **제외**할 때 쓴다.
+- **이미 Git이 추적 중인 파일은 `.gitignore`를 추가해도 변경 목록에 계속 보인다.** 이럴 때는 `git rm --cached <파일>`로 추적만 해제한다.
+- VS Code Source Control의 표시: `U`는 새 파일(Untracked), `D`는 삭제된 파일(Deleted).
