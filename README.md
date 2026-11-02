@@ -54,6 +54,7 @@ Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 
 ## 🛠️ Backend (FastAPI)
 
 - [01. FastAPI 기초: 요청 흐름, Parameter, Pydantic, 상태 코드](backend/01-fastapi-basics-and-request-parameters.md)
+- [02. ASGI vs WSGI, 로그 레벨, logger.py 분리, --reload](backend/02-asgi-wsgi-logging-and-reload.md)
 
 ## 🌐 Django
 
