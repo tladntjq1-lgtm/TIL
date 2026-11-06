@@ -57,6 +57,7 @@ Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 
 - [02. ASGI vs WSGI, 로그 레벨, logger.py 분리, --reload](backend/02-asgi-wsgi-logging-and-reload.md)
 - [03. 타입 힌트와 Pydantic v2 (검증기, exclude_unset, 제네릭 응답)](backend/03-type-hints-and-pydantic-v2.md)
 - [04. response_model, N+1 문제(joinedload), 멱등성](backend/04-response-model-n-plus-1-and-idempotency.md)
+- [05. EC2 키 페어 권한(chmod 400), 스왑 메모리, 미들웨어 실행 순서](backend/05-ec2-key-pair-swap-and-middleware-order.md)
 
 ## 🌐 Django
 
