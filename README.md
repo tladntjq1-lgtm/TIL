@@ -71,6 +71,7 @@ Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 
 ## ⚛️ Next.js
 
 - [01. App Router 동적 라우팅과 TypeScript 선택 속성](nextjs/01-app-router-and-typescript-basics.md)
+- [02. React 컴포넌트·State와 FastAPI 회원 목록 연동 (fetch, useEffect, CORS)](nextjs/02-react-components-state-and-fastapi-integration.md)
 
 ## 🚀 Projects
 
