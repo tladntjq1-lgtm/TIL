@@ -52,6 +52,7 @@ Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 
 - [07. 환각의 3가지 유형, 지식 컷오프, 자동화 편향](ai-ml/07-hallucination-types-cutoff-and-automation-bias.md)
 - [08. RAG 파이프라인 (인덱싱 단계 vs 질의 단계, chunk_overlap, 리트리버)](ai-ml/08-rag-pipeline-indexing-and-query.md)
 - [09. RAG 첫 실습 (tokenize와 set, score, 출력 토큰 상한과 빈 응답)](ai-ml/09-rag-first-practice-and-api-output-limits.md)
+- [10. 임베딩, 코사인 유사도, ANN, temperature=0](ai-ml/10-embedding-cosine-similarity-ann-and-temperature.md)
 
 ## 🛠️ Backend (FastAPI)
 
