@@ -1,0 +1,109 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘은 데이터베이스 수업에서 <strong>PRIMARY KEY와 UNIQUE의 차이</strong>, 그리고 <strong>ERD를 이루는 세 가지 구성 요소</strong>를 정리했다. 둘 다 "중복 불가"처럼 비슷해 보이는 개념이라 어디서 갈리는지를 기준으로 기록해 둔다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">PRIMARY KEY</code>와 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">UNIQUE</code>는 둘 다 중복을 막지만, <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NULL</code> 허용 여부가 다르다.</strong></li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">PRIMARY KEY</code>는 한 테이블에 <strong>하나만</strong>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">UNIQUE</code>는 <strong>여러 열에</strong> 걸 수 있다.</li>
+<li>ERD는 <strong>엔티티(테이블), 속성(컬럼), 관계(선과 기호)</strong> 세 가지로 이루어진다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. PRIMARY KEY vs UNIQUE</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0921/0921-PK%EC%99%80-UNIQUE-%EB%B9%84%EA%B5%90.png" alt="PRIMARY KEY vs UNIQUE" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">PRIMARY KEY vs UNIQUE</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">기본키(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">PRIMARY KEY</code>)는 중복 값을 가질 수 없고 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NULL</code> 값도 가질 수 없다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">UNIQUE</code>도 중복은 막지만 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NULL</code>에 대한 태도가 다르다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">제약</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">중복</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">NULL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">PRIMARY KEY</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">불가</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>불가</strong></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">UNIQUE</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">불가</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>허용</strong> (단, NULL은 여러 번 허용)</td>
+</tr>
+</tbody>
+</table>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">여기서 헷갈리기 쉬운 부분은 마지막 괄호다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">UNIQUE</code> 열에서는 값이 같은 행을 두 번 넣을 수 없지만, <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NULL</code>은 여러 번 넣을 수 있다.</strong></p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 한 테이블에 몇 개까지 걸 수 있을까</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0921/0921-%ED%9A%8C%EC%9B%90-%ED%85%8C%EC%9D%B4%EB%B8%94-%EC%98%88%EC%8B%9C.png" alt="한 테이블에 몇 개까지 걸 수 있을까" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">한 테이블에 몇 개까지 걸 수 있을까</figcaption></figure>
+
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">PRIMARY KEY</code>는 한 테이블에 <strong>하나만</strong> 지정할 수 있다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">UNIQUE</code>는 <strong>여러 열에</strong> 걸어 둘 수 있다. (예: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">email</code> 컬럼)</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">개념 이해용 예시로, 회원 테이블을 다음처럼 생각해 볼 수 있다. 이 예시는 원본 노트에 있는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">email</code> 컬럼 언급을 바탕으로 내가 만든 것이다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">id (PRIMARY KEY)</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">email (UNIQUE)</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">1</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">a@example.com</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">홍길동</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">2</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">NULL</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">김철수</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">3</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">NULL</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">이영희</td>
+</tr>
+</tbody>
+</table>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">id</code>는 비어 있을 수 없고 겹칠 수도 없다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">email</code>은 같은 주소를 두 번 넣을 수 없지만, 값이 없는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NULL</code>은 2번, 3번 행처럼 여러 번 들어갈 수 있다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. ERD의 3가지 핵심 구성 요소</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0921/0921-ERD-%EC%84%B8-%EA%B0%80%EC%A7%80-%EA%B5%AC%EC%84%B1%EC%9A%94%EC%86%8C.png" alt="ERD의 3가지 핵심 구성 요소" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">ERD의 3가지 핵심 구성 요소</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">관계형 데이터베이스(RDBMS)는 데이터를 <strong>테이블</strong>이라는 2차원 구조에 저장하고, 테이블은 행(Row)과 열(Column)로 구성된다. ERD는 이 테이블들과 그 연결을 그림으로 나타낸 것이며, 세 가지 요소로 이루어진다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">구성 요소</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">표현 방법</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Entity(엔티티)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">사각형</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">데이터베이스의 하나의 테이블</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Attribute(속성)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">열(컬럼)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">테이블이 가진 각 항목</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Relationship(관계)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">선과 기호</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">테이블 간의 연결 (까마귀발 표기법 등)</td>
+</tr>
+</tbody>
+</table>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>중복 불가는 같고 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NULL</code>은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">PRIMARY KEY</code>만 불가</strong>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">UNIQUE</code>는 허용한다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">PRIMARY KEY</code>는 테이블당 하나, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">UNIQUE</code>는 여러 개 가능하다.</li>
+<li>ERD에서 사각형은 테이블(엔티티), 열은 속성, 선과 기호는 관계다.</li>
+</ul>
+</div>

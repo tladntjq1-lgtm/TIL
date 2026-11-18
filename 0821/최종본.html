@@ -1,0 +1,163 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘은 pandas로 표 데이터를 다루는 기본기를 정리했다. DataFrame 구조를 점검하고, 조건으로 행을 거르고, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">groupby</code>로 집계하고, 결측치와 이상치를 다루는 순서로 이어진다. 코드를 외우기보다 "이 결과가 왜 이렇게 나왔는지"를 설명할 수 있는지에 집중해서 적어 둔다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>한 열을 고르면 <strong>Series</strong>, 열을 리스트로 여러 개 고르면 <strong>DataFrame</strong>이다.</li>
+<li>조건식으로 만든 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">True</code>/<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">False</code> 열(<strong>불리언 마스크</strong>)로 원하는 행만 남긴다.</li>
+<li>건수만 보면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">value_counts()</code>, 여러 지표를 함께 보면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">groupby()</code> + <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">agg()</code>를 쓴다.</li>
+<li>결측치는 <strong>숫자형은 평균/중앙값, 범주형은 최빈값</strong>으로 채우고, 이상값은 <strong>바로 지우지 않고 원인부터 검증</strong>한다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. Series와 DataFrame</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0821/0821-Series%EC%99%80-DataFrame-%EC%B0%A8%EC%9D%B4.png" alt="Series와 DataFrame" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">Series와 DataFrame</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">pandas</code>를 설치한 뒤 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">import pandas as pd</code>로 불러온다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>Series</strong>: 1차원 데이터 (한 열)</li>
+<li><strong>DataFrame</strong>: 2차원 데이터 (표 전체, 여러 열의 모음)</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">한 열만 선택하면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Series</code>, 여러 열을 리스트로 선택하면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">DataFrame</code>이 된다. 이 차이는 직접 타입을 찍어서 확인해 봐야 한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">import pandas as pd
+
+df = pd.read_csv(&quot;data/orders.csv&quot;)
+
+df[&quot;price&quot;]           # Series (한 열)
+df[[&quot;price&quot;, &quot;qty&quot;]]  # DataFrame (여러 열)
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 데이터 구조 점검하기</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">데이터를 불러오면 분석에 들어가기 전에 먼저 생김새부터 확인한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">df.head()      # 앞부분 미리보기 (기본 5행)
+df.head(10)    # 괄호 안 숫자로 상위 데이터 개수 조절
+df.tail()      # 뒷부분 미리보기
+df.shape       # (행 수, 열 수)
+df.columns     # 열 이름 목록
+df.dtypes      # 각 열의 데이터 타입
+df.info()      # 구조 전체를 한 번에 확인 (열, 타입, 결측치 개수 등)
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. 불리언 마스크로 행 필터링</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0821/0821-%EB%B6%88%EB%A6%AC%EC%96%B8-%EB%A7%88%EC%8A%A4%ED%81%AC-%ED%95%84%ED%84%B0%EB%A7%81.png" alt="불리언 마스크로 행 필터링" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">불리언 마스크로 행 필터링</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">비교식을 쓰면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">True</code>/<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">False</code> 값으로 이루어진 Series가 만들어지고, 이것을 대괄호에 넣으면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">True</code>인 행만 남는다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">customers[&quot;age&quot;] &gt;= 30              # 비교식 -&gt; Boolean Series 생성
+customers_over_30 = customers[customers[&quot;age&quot;] &gt;= 30]  # True인 행만 남음
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">이렇게 비교식으로 만든 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">True</code>/<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">False</code> Series를 <strong>불리언 마스크</strong>라고 부른다. 여러 조건을 조합할 때는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">&amp;</code>(and), <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">|</code>(or)와 <strong>괄호</strong>를 함께 써야 한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">mask = (customers[&quot;age&quot;] &gt;= 30) &amp; (customers[&quot;city&quot;] == &quot;서울&quot;)
+result = customers[mask]
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 숫자 요약과 결측값 개수</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">숫자 열은 메서드 하나로 기본 통계를 바로 볼 수 있다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">df[&quot;price&quot;].mean()      # 평균
+df[&quot;price&quot;].min()       # 최솟값
+df[&quot;price&quot;].max()       # 최댓값
+df[&quot;price&quot;].sum()       # 합계
+df[&quot;price&quot;].describe()  # 개수/평균/표준편차/사분위수 등을 한 번에 요약
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">결측값은 열별로 몇 개인지부터 확인한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">df.isna().sum()   # 열별로 결측값(NaN) 개수를 확인
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. value_counts와 groupby, agg</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0821/0821-%EA%B1%B4%EC%88%98-vs-%EC%A7%91%EA%B3%84-%EC%84%A0%ED%83%9D.png" alt="value_counts와 groupby, agg" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">value_counts와 groupby, agg</figcaption></figure>
+
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">value_counts(): 빈도 확인</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">특정 열의 값들이 각각 몇 번씩 나타나는지 빠르게 확인할 때 쓴다. 주문 상태별(완료/취소/환불 등) 건수를 볼 수 있다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">orders[&quot;order_status&quot;].value_counts()
+orders[&quot;order_status&quot;].value_counts(dropna=False)   # 결측치도 포함해서 보기
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">품질 점검이 목적이라면 결측치를 포함할지 여부를 의도적으로 결정해야 한다.</p>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">value_counts와 groupby/agg 중 무엇을 쓸까</h3>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>값별 <strong>단순 건수</strong>만 필요하면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">value_counts()</code></li>
+<li>여러 지표(합계, 평균 등)를 함께 봐야 하면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">groupby()</code> / <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">agg()</code></li>
+</ul>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">groupby: 같은 카테고리를 한 그룹으로</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">카테고리가 같으면 한 그룹으로 묶이고, 결과의 한 행은 카테고리 하나를 의미한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">product_summary = products.groupby(&quot;category&quot;, as_index=False).agg(
+    product_count=(&quot;product_id&quot;, &quot;nunique&quot;),
+    average_price=(&quot;price&quot;, &quot;mean&quot;),
+)
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">agg()</code>: 지표 이름(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">product_count</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">average_price</code>)과 계산 함수(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">"nunique"</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">"mean"</code>)를 함께 지정한다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">as_index=False</code>: 그룹 키(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">category</code>)를 인덱스가 아니라 <strong>일반 컬럼</strong>으로 남긴다. 이후 다른 데이터와 저장하거나 병합하기 편해진다.</li>
+</ul>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">주의: 같은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">category</code>로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">groupby</code>를 하더라도, <strong>전체 주문</strong>을 기준으로 그룹화했는지 <strong>completed 주문만</strong> 필터링한 뒤 그룹화했는지에 따라 결과의 의미가 완전히 달라진다. 필터링 순서를 항상 의식해야 한다.</p>
+</blockquote>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">sum()과 mean()</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">합계와 평균은 서로 다른 질문에 답한다. 결과를 볼 때는 항상 <strong>어떤 단위인지</strong>를 함께 설명해야 오해가 없다. 예를 들어 "매출 합계"와 "평균 주문 금액"은 완전히 다른 지표다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 문자로 인식된 숫자를 진짜 숫자로 바꾸기</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">엑셀이나 웹에서 수집한 요금 데이터에 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">$</code>나 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">,</code> 같은 기호가 섞여 있으면, 컴퓨터는 이를 숫자가 아닌 <strong>문자(Object)</strong> 로 인식해서 통계 계산에서 제외해 버린다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python"># 1. 기호 제거
+df[&quot;fare&quot;] = df[&quot;fare&quot;].str.replace(&quot;$&quot;, &quot;&quot;).str.replace(&quot;,&quot;, &quot;&quot;)
+
+# 2. 숫자로 강제 변환
+df[&quot;fare&quot;] = pd.to_numeric(df[&quot;fare&quot;])
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">pd.to_numeric()</code>: 통계 계산이 가능한 숫자형으로 강제 변환한다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">fillna()</code>는 결측치를 채우는 함수, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">boxplot()</code>은 시각화 함수, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">to_string()</code>은 반대로 문자열로 바꾸는 함수라서 이 목적과는 무관하다. 퀴즈에서 자주 헷갈렸던 선택지들이다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">7. 결측치를 채우는 기준</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0821/0821-%EA%B2%B0%EC%B8%A1%EC%B9%98-%EC%B1%84%EC%9A%B0%EB%8A%94-%EA%B8%B0%EC%A4%80.png" alt="결측치를 채우는 기준" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">결측치를 채우는 기준</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">결측치를 채울 때는 데이터 종류에 따라 기준이 달라진다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">데이터 종류</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">채우는 값</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">이유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">숫자형 (예: 나이)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">평균(mean) 또는 중앙값(median)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">산술 연산이 가능</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">문자/범주형 (예: 탑승 항구)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">최빈값(mode)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">평균을 계산할 수 없음</td>
+</tr>
+</tbody>
+</table>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">문자/범주형 데이터는 덧셈과 나눗셈이 불가능해 평균을 구할 수 없다. 그래서 가장 많이 등장하는 값인 <strong>최빈값(mode)</strong> 으로 채우는 것이 자연스러운 전략이다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">df[&quot;embarked&quot;] = df[&quot;embarked&quot;].fillna(df[&quot;embarked&quot;].mode()[0])
+df[&quot;age&quot;] = df[&quot;age&quot;].fillna(df[&quot;age&quot;].mean())
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">8. Copy-on-Write와 안전한 수정 방법</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">Pandas 2.2부터 도입된 <strong>Copy-on-Write(CoW)</strong> 는, 데이터를 조회할 때는 원본을 공유해서 메모리를 아끼다가, 수정(Write)이 발생하는 순간 독립적인 복사본을 만들어 원본을 안전하게 보호하는 메모리 절약 기술이다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">SettingWithCopyWarning</code> 같은 문제를 줄여 준다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>권장: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.loc[]</code> / <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.iloc[]</code>로 <strong>한 번의 단일 작업</strong>에 정확한 위치를 지정해서 수정한다.</li>
+<li>비권장: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">df['A']['B']</code>처럼 대괄호를 <strong>연속으로 사용</strong>하는 방식. 두 단계로 처리되어 중간에 임시 복사본이 생기고, 원본 수정이 보장되지 않는다.</li>
+</ul>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">df.loc[df[&quot;age&quot;] &gt; 100, &quot;age&quot;] = None  # 안전한 수정
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">9. 이상치와 데이터 검증 원칙</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0821/0821-%EC%9D%B4%EC%83%81%EC%B9%98-%EA%B2%80%EC%A6%9D-%EC%88%9C%EC%84%9C.png" alt="이상치와 데이터 검증 원칙" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">이상치와 데이터 검증 원칙</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">다른 데이터에 비해 유독 크거나 작은 값을 <strong>이상치(Outlier)</strong> 라고 한다. 박스 플롯(Box Plot)을 그리면 상자 바깥에 점으로 표시되어 쉽게 확인할 수 있다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">df[&quot;fare&quot;].plot.box()
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">타이타닉 데이터에서는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">fare</code>의 최댓값이 512달러로 나타나 이상치가 있음을 알 수 있었다.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">price</code>에 음수가 있거나 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">age</code>가 1000살로 찍혀 있어도, <strong>바로 삭제하는 것은 잘못된 방법</strong>이다. 먼저 이상값의 원인을 검증하고, 검증이 끝난 뒤 필요하다면 마지막 단계에서 처리 방향을 정한다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">10. 에러가 났을 때 체크 순서와 N:M 관계</h2>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">자주 만나는 오류 체크 순서</h3>
+<ol style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">ModuleNotFoundError</code>: pandas가 현재 가상환경에 설치되어 있는지</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">FileNotFoundError</code>: CSV 경로가 맞는지</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">KeyError</code>: 존재하지 않는 컬럼명을 조회했는지</li>
+<li>자료형 문제: 숫자처럼 보이는 값이 실제로는 문자열(Object)일 수 있음</li>
+</ol>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">N:M 관계와 중간 테이블 조인 (도서 대여 예시)</h3>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code>members (1) ── (N) loans (N) ── (1) books
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>한 사람은 여러 책을 빌릴 수 있다.</li>
+<li>착각하기 쉬운 포인트는, 하나의 책도 여러 사람에게 (시간을 두고) 빌려질 수 있다는 것이다. 이것이 <strong>N:M 관계</strong>다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">members</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">books</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">loans</code> 세 테이블을 조인해서 "누가 어떤 책을 빌렸는지"를 확인한다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">마무리: AI와 함께 공부하는 방법</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">AI에게 새로운 분석 코드를 바로 요구하기보다, <strong>결과가 왜 그렇게 나왔는지 구조와 해석을 먼저 검토받고, 다음 질문을 이어가는 방식</strong>이 더 남는 학습이었다.</p>
+</div>

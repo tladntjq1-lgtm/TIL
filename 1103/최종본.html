@@ -1,0 +1,228 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘 데일리 퀘스트는 <strong>타입 힌트의 한계</strong>, <strong>Pydantic v1에서 v2로 바뀐 점</strong>, <strong>검증기(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">field_validator</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">model_validator</code>)</strong>, <strong>수정(PUT) API의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">exclude_unset</code></strong>, <strong>제네릭 공통 응답 모델</strong>을 다뤘다. 지난 글에서 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">BaseModel</code>로 요청 Body를 검증했는데, 이번에는 그 도구들을 더 자세히 본 셈이다. 틀린 문제는 오답노트에 따로 적었다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>타입 힌트는 <strong>에디터 경고용</strong>이고 실행 시에는 강제력이 없다. 실행 시 검증은 <strong>Pydantic</strong>이 한다.</li>
+<li>v2에서는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">@validator</code>가 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">@field_validator</code>로, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.dict()</code>가 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.model_dump()</code>로 바뀌었다.</li>
+<li>여러 필드를 비교하는 규칙은 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">@model_validator(mode="after")</code></strong> 로 쓴다.</li>
+<li>수정 API에서 보내지 않은 필드를 건드리지 않으려면 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">exclude_unset=True</code></strong> 를 쓴다.</li>
+<li>공통 응답 모델은 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Generic[T]</code></strong> 로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">data</code>의 타입만 바꿔 끼운다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 타입 힌트는 "힌트"일 뿐이다</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1103/1103-%ED%83%80%EC%9E%85-%ED%9E%8C%ED%8A%B8%EC%99%80-Pydantic-%EB%B9%84%EA%B5%90.png" alt="타입 힌트는 &quot;힌트&quot;일 뿐이다" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">타입 힌트는 &quot;힌트&quot;일 뿐이다</figcaption></figure>
+
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">def add(a: int, b: int) -&gt; int:
+    return a + b
+
+add(&quot;1&quot;, &quot;2&quot;)   # 에디터는 경고를 띄우지만, 실행하면 그냥 &quot;12&quot;가 나온다
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>타입 힌트는 <strong>VS Code 같은 에디터가 경고를 띄워주는 용도</strong>다. 실행 시에는 <strong>강제력이 없다.</strong></li>
+<li>이 한계를 보완하려고 등장한 것이 <strong>Pydantic</strong>이다. 실행 시점에 데이터를 실제로 검사하고 변환하며, 어긋나면 오류를 낸다. (FastAPI에서는 422 응답)</li>
+</ul>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;"></th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">타입 힌트</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">Pydantic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">검사 시점</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">에디터(작성 중)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>실행 시(데이터가 들어올 때)</strong></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">강제력</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">없음</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">있음 (검증 실패 시 예외)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">타입 변환</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">안 함</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">가능한 범위에서 변환</td>
+</tr>
+</tbody>
+</table>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. Pydantic v1에서 v2로 바뀐 핵심 변화</h2>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">항목</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">v1</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">v2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">단일 필드 검증기</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">@validator</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">@field_validator</code></strong></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">모델 전체 검증기</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">@root_validator</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">@model_validator</code></strong></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">객체 → dict 변환</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.dict()</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.model_dump()</code></strong></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Union 매칭</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">left_to_right</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">smart</code></strong> (의도치 않은 형변환 방지)</td>
+</tr>
+</tbody>
+</table>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">Union 매칭은 "왼쪽부터 순서대로 시도"에서 "입력에 가장 잘 맞는 타입을 고르는" 방식으로 바뀌었다. 방향을 반대로 서술한 선지는 틀린 설명이다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. 검증기: field_validator와 model_validator</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1103/1103-%EA%B2%80%EC%A6%9D%EA%B8%B0-%EC%8B%A4%ED%96%89-%EC%88%9C%EC%84%9C.png" alt="검증기: field_validator와 model_validator" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">검증기: field_validator와 model_validator</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">아래 코드는 TIL에 적어 둔 예시다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">from pydantic import BaseModel, field_validator, model_validator
+
+class BookCreate(BaseModel):
+    title: str
+    price: int
+    discount_price: int | None = None
+
+    @field_validator(&quot;title&quot;)                 # 한 필드만 검사
+    @classmethod
+    def title_not_blank(cls, v: str) -&gt; str:
+        if not v.strip():
+            raise ValueError(&quot;제목은 비어 있을 수 없다&quot;)
+        return v
+
+    @model_validator(mode=&quot;after&quot;)            # 모든 필드 검사가 끝난 뒤 실행
+    def check_discount_price(self):
+        if self.discount_price is not None and self.discount_price &gt;= self.price:
+            raise ValueError(&quot;할인가는 정가보다 낮아야 한다&quot;)
+        return self
+</code></pre>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">데코레이터</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">대상</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">@field_validator("필드명")</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">필드 하나</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">그 필드의 값만 검사하고 가공</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">@model_validator(mode="after")</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>완성된 인스턴스(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">self</code>)</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">여러 필드를 서로 비교하는 <strong>복합 비즈니스 규칙</strong></td>
+</tr>
+</tbody>
+</table>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">mode="after"</code>는 기본 타입 검사와 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">@field_validator</code>가 <strong>다 끝난 뒤</strong> 작동한다. 그래서 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">self.price</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">self.discount_price</code>처럼 이미 검증된 값을 꺼내 비교할 수 있다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">mode="before"</code>는 필드 검증 <strong>이전</strong>의 원본 입력을 다루는 옵션이다. "수정 API에서 생략된 필드 처리"와는 관련이 없다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. PUT/PATCH 수정 API: exclude_unset=True</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1103/1103-exclude_unset%EA%B3%BC-exclude_none-%EB%B9%84%EA%B5%90.png" alt="PUT/PATCH 수정 API: exclude_unset=True" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">PUT/PATCH 수정 API: exclude_unset=True</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">수정 요청에서 클라이언트가 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">title</code>만 보내면, 모델의 나머지 필드는 기본값(예: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">None</code>)으로 채워진다. 이 값을 그대로 저장소에 덮으면 <strong>기존 데이터가 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">None</code>으로 오염</strong>된다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">class BookUpdate(BaseModel):
+    title: str | None = None
+    price: int | None = None
+    discount_price: int | None = None
+
+@app.put(&quot;/books/{book_id}&quot;)
+def update_book(book_id: int, payload: BookUpdate):
+    update_data = payload.model_dump(exclude_unset=True)   # 보낸 필드만 추출
+    books[book_id].update(update_data)
+    return books[book_id]
+</code></pre>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">옵션</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">제외하는 것</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">이 상황에서</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">exclude_unset=True</code></strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">클라이언트가 <strong>보내지 않은</strong> 필드</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">정답. 생략한 필드는 건드리지 않는다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">exclude_none=True</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">값이 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">None</code>인 필드</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">다른 옵션. 클라이언트가 <strong>일부러</strong> <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">null</code>을 보낸 필드도 같이 빠진다</td>
+</tr>
+</tbody>
+</table>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">한 줄로 정리하면 <strong>"안 보냈다"(unset)와 "None을 보냈다"는 다르다.</strong> 수정 API는 "안 보냈다"를 기준으로 걸러야 한다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. 제네릭 공통 응답 모델: Generic[T]</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1103/1103-%EC%A0%9C%EB%84%A4%EB%A6%AD-%EC%9D%91%EB%8B%B5-%EB%AA%A8%EB%8D%B8-%EA%B5%AC%EC%A1%B0.png" alt="제네릭 공통 응답 모델: Generic[T]" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">제네릭 공통 응답 모델: Generic[T]</figcaption></figure>
+
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">from typing import Generic, Optional, TypeVar
+from pydantic import BaseModel
+
+T = TypeVar(&quot;T&quot;)
+
+class APIResponse(BaseModel, Generic[T]):
+    success: bool
+    data: Optional[T] = None
+
+APIResponse[BookResponse]          # 단건 응답
+APIResponse[list[BookResponse]]    # 목록 응답
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">T</code>는 <strong>나중에 채워 넣는 타입 자리표시자</strong>다. 사용하는 시점에 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">APIResponse[BookResponse]</code>처럼 타입을 대입한다.</li>
+<li>응답 형식(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">success</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">data</code>)은 하나로 통일하고, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">data</code> 안에 들어갈 내용만 상황에 따라 바꿀 수 있다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">BaseModel</code>의 기능은 그대로 유지되고, 리스트 형태 응답에도 쓸 수 있다.</li>
+<li>여러 부모를 상속하면 <strong>MRO(왼쪽 우선)</strong> 에 따라 왼쪽에 적힌 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">BaseModel</code>이 우선권을 가진다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Generic[T]</code>가 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">BaseModel</code>을 덮어쓰는 것은 아니다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오답노트 (2026-11-03)</h2>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">문항</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">내가 고른 것</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">정답 방향</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">틀린 이유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">1. 타입 힌트 설명</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">실행 중 강제 검사</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">에디터 경고 수준, 강제력 없음</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>Pydantic이 하는 일</strong>을 타입 힌트의 기능으로 착각</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">2. v2 변화 <strong>옳지 않은 것</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">@validator</code> → <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">@field_validator</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Union 매칭 방향을 반대로 쓴 4번</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>부정 문제를 거꾸로 읽음</strong> (선택한 B는 옳은 설명)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">4. 생략 필드 덮어쓰기 방지</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">exclude_none=True</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">exclude_unset=True</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">"None 제외"와 "안 보낸 것 제외"를 혼동</td>
+</tr>
+</tbody>
+</table>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>1번</strong>: 키워드 정리. 타입 힌트 = 에디터 경고(실행 시 무력), Pydantic = 실행 시 검증과 변환.</li>
+<li><strong>2번</strong>: 지난 퀘스트(11월 2일, 3번과 4번)에 이어 <strong>또 부정 문제를 놓쳤다.</strong> 세 번째 반복이므로 습관으로 고정한다. 문제를 읽자마자 "옳지 <strong>않은</strong> 것"에 동그라미를 치고, 선지마다 "이건 맞는 설명인가?"를 판단한 뒤 <strong>틀린 것 하나만</strong> 고른다.</li>
+<li><strong>4번</strong>: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">unset</code>(안 보냄)과 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">none</code>(None 값)을 구분하자. 수정 API에서 "일부만 바꾸기"는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">exclude_unset=True</code>다.</li>
+<li>맞힌 문제: 3번(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">@model_validator(mode="after")</code>), 5번(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Generic[T]</code>로 타입을 유연하게 대입).</li>
+</ul>
+</div>

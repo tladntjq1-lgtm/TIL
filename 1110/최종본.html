@@ -1,0 +1,380 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">Phase 02에서 만든 <strong>FastAPI + PostgreSQL(주방)</strong> 에 <strong>Next.js + React 화면(홀)</strong> 을 붙여, 브라우저에서 <strong>실제 DB 회원 8명</strong>을 조회하는 데까지 완성했다. Phase 03의 1~4강 내용이다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>환경: Windows 11, VS Code, PowerShell, Node v24.19.0, npm 11.17.0, Next.js 16.4.6, React 19.3.0</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>Props는 받기만, State는 바꾸면 화면이 다시 그려진다.</strong></li>
+<li>데이터 가져오기는 <strong>fetch + useEffect + Loading/Empty/Error 세 가지 상태 + AbortController</strong> 한 세트다.</li>
+<li>화면의 입력 검사는 편의일 뿐이고, 최종 검증은 <strong>백엔드(Pydantic)</strong> 가 한다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 전체 흐름과 폴더 구조</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1110/1110-%EB%B8%8C%EB%9D%BC%EC%9A%B0%EC%A0%80%EC%97%90%EC%84%9C-DB%EA%B9%8C%EC%A7%80-%ED%9D%90%EB%A6%84.png" alt="전체 흐름과 폴더 구조" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">전체 흐름과 폴더 구조</figcaption></figure>
+
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-text">브라우저 (localhost:3000)
+   │ useEffect → fetch GET /members
+   ▼
+FastAPI (127.0.0.1:8000)  ← CORS로 3000번 허용
+   │ SQLAlchemy
+   ▼
+PostgreSQL → 회원 8명 → JSON 배열 → Member[] State → 카드 표시
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">작업 폴더는 이렇게 나눴다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-text">fullstack-web-course
+├─ backend            ← Phase 02 원본 (.venv 공용)
+└─ react
+   ├─ .env            ← FastAPI용 DB·CORS 설정 (비밀값, 커밋 금지)
+   ├─ backend         ← Phase 02 코드 복사본 (Phase 03에서는 여기만 수정)
+   └─ member-next-app ← Next.js 프로젝트
+      ├─ .env.local   ← NEXT_PUBLIC_API_BASE_URL (커밋 금지)
+      ├─ app/page.tsx
+      ├─ components/ (MemberCard, MemberList, MemberWorkspace)
+      ├─ lib/members-api.ts
+      └─ types/member.ts
+</code></pre>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">기억법: <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">npm</code> 명령은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">member-next-app</code>에서</strong>, <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">uvicorn</code> 명령은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">react</code>에서</strong> 실행한다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 서버 켜는 순서</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">터미널을 역할별로 나눈다: <strong>api</strong>(FastAPI), <strong>web</strong>(Next.js), <strong>cmd</strong>(검사와 git).</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-powershell"># 8000번이 비었는지 확인 (다른 Docker 컨테이너가 쓰고 있으면 충돌)
+Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue
+
+# api 터미널 (react 폴더에서)
+..\backend\.venv\Scripts\Activate.ps1
+python -m uvicorn backend.main:app --reload --reload-dir backend --port 8000
+
+# web 터미널 (member-next-app 폴더에서)
+npm run dev
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. 1강: 개발환경과 첫 화면</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">npx create-next-app@latest member-next-app --ts --eslint --app --no-tailwind --use-npm</code>으로 프로젝트를 만든다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">npm run dev</code> 후 코드를 저장하면 화면이 자동으로 반영된다.</li>
+<li>검사 3종: 명령 뒤에 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">; "결과: $LASTEXITCODE"</code>를 붙여 <strong>0이면 통과</strong>로 판단한다.</li>
+</ul>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">명령</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">비유</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">보는 것</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">npx tsc --noEmit</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">맞춤법 검사</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">타입이 맞는지</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">npx eslint ...</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">문장 다듬기 조언</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">나쁜 코드 습관</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">npm run build</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">인쇄 테스트</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">실제 배포 가능한지</td>
+</tr>
+</tbody>
+</table>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 2강: Component와 TypeScript</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1110/1110-Component-%EA%B5%AC%EC%A1%B0%EC%99%80-Props-State.png" alt="2강: Component와 TypeScript" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">2강: Component와 TypeScript</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">화면을 컴포넌트로 쪼개서 이런 구조로 만들었다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-text">page.tsx (members)
+   └─ MemberList (map으로 한 명씩)
+        └─ MemberCard × N
+</code></pre>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">용어</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">비유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Component</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">레고 블록</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Props</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">블록에 넣는 내용물 (부모 → 자식)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">type</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">내용물 규격표 (<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Member</code>)</td>
+</tr>
+</tbody>
+</table>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Member</code> = 한 명, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Member[]</code> = 여러 명.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">map()</code> = 목록을 하나씩 꺼내 카드로 변환한다. (Python의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">for</code>와 비슷하다.) <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">key={member.member_id}</code>는 각 카드의 고유 이름표다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">조건 ? A : B</code> = Python의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">if / else</code> 한 줄 버전.</li>
+<li>TypeScript에는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">integer</code>가 없고 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">number</code> 하나</strong>로 정수와 소수를 모두 표현한다.</li>
+</ul>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-ts">// types/member.ts
+export type Member = {
+  member_id: number;
+  name: string;
+  email: string;
+  age: number;
+};
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. 3강: Props, State, Event</h2>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;"></th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Props</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">부모가 준 택배 (받기만 한다)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">State</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">내가 쓰는 메모장 (바꿀 수 있다)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Controlled Form</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">입력칸의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">value</code>와 State를 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">onChange</code>로 연결</td>
+</tr>
+</tbody>
+</table>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>변수를 그냥 바꾸면 화면이 모른다. 반드시 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">setXxx()</code>로 바꿔야 다시 그려진다.</li>
+<li><strong>Server Component(기본) vs Client Component(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">"use client"</code>)</strong>: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">useState</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">onClick</code>은 Client Component에서만 쓸 수 있다. 사용자가 만지는 부분만 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">"use client"</code>로 떼어낸다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">filter()</code> + <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">toLowerCase()</code>로 대소문자를 무시하는 검색을 만들고, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">event.preventDefault()</code>로 폼 제출 시 새로고침을 막는다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Number.isInteger()</code>로 나이를 검사한다. 화면 검사는 <strong>사용자 편의</strong>이고, 진짜 문지기는 <strong>백엔드(Pydantic)</strong> 다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 4강: FastAPI에서 회원 목록 가져오기</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1110/1110-fetch-useEffect-%EC%83%81%ED%83%9C-%ED%9D%90%EB%A6%84.png" alt="4강: FastAPI에서 회원 목록 가져오기" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">4강: FastAPI에서 회원 목록 가져오기</figcaption></figure>
+
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">용어</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">비유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">fetch</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">주방에 주문서 보내기</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">useEffect</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">화면이 열리면 자동으로 주문</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Loading / Empty / Error</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">"조리 중" / "재료 없음" / "주방 문제" 안내판</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">AbortController</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">이전 주문 취소 장치</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">CORS</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">3000번 문에서 오는 요청을 8000번이 허락하는 설정</td>
+</tr>
+</tbody>
+</table>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>API 호출 함수</strong>: 응답이 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Member[]</code> 모양인지 직접 검사한 뒤 반환한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-ts">// lib/members-api.ts
+export async function getMembers(signal?: AbortSignal): Promise&lt;Member[]&gt; {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!baseUrl) throw new Error(&quot;NEXT_PUBLIC_API_BASE_URL을 설정해 주세요.&quot;);
+
+  const response = await fetch(`${baseUrl.replace(/\/$/, &quot;&quot;)}/members`, {
+    cache: &quot;no-store&quot;,
+    signal,
+  });
+  if (!response.ok) throw new Error(`회원 조회 실패: HTTP ${response.status}`);
+
+  const data: unknown = await response.json();
+  // Array인지, 각 원소의 필드 타입이 Member와 맞는지 검사 후 return data
+  return data as Member[];
+}
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">useEffect</code>로 조회하고, 화면이 닫히면 요청 취소</strong></p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-tsx">useEffect(() =&gt; {
+  const controller = new AbortController();
+
+  getMembers(controller.signal)
+    .then((data) =&gt; {
+      if (controller.signal.aborted) return;
+      setMembers(data);
+      setError(&quot;&quot;);
+    })
+    .catch((caught: unknown) =&gt; {
+      if (controller.signal.aborted) return;
+      setError(caught instanceof Error ? caught.message : &quot;알 수 없는 조회 오류&quot;);
+    })
+    .finally(() =&gt; {
+      if (!controller.signal.aborted) setLoading(false);
+    });
+
+  return () =&gt; controller.abort();   // 정리(cleanup)
+}, [reloadKey]);                      // reloadKey가 바뀌면 다시 조회
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>"다시 조회" 버튼은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">setReloadKey(v =&gt; v + 1)</code>로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">useEffect</code>를 다시 실행시킨다.</li>
+<li>로딩, 오류, 목록 표시는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">loading ? ... : error ? ... : &lt;MemberList /&gt;</code> 순서로 분기한다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">7. 설정 파일과 CORS</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1110/1110-%EC%84%A4%EC%A0%95-%ED%8C%8C%EC%9D%BC-env-%EB%B9%84%EA%B5%90.png" alt="설정 파일과 CORS" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">설정 파일과 CORS</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">설정 파일은 <strong>누가 읽는지</strong>와 <strong>비밀값이 들어가는지</strong>로 구분한다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">파일</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">누가 읽나</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">내용</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">비밀값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">react\.env</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">FastAPI</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">DB 접속 정보, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">CORS_ORIGINS</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">있음 (커밋 금지)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">member-next-app\.env.local</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Next.js</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NEXT_PUBLIC_API_BASE_URL</code>에 FastAPI 주소(로컬 개발 주소)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">없음</td>
+</tr>
+</tbody>
+</table>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.env</code> / <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.env.local</code>은 <strong>서버가 켜질 때만</strong> 읽힌다. 고치면 재시작해야 한다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NEXT_PUBLIC_</code> 값은 브라우저에 공개되므로 비밀값을 넣지 않는다.</li>
+<li>CORS에는 Next.js 주소(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">http://localhost:3000</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">http://127.0.0.1:3000</code>)를 추가해야 한다. Phase 02는 Live Server(5500)만 허용하고 있었다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">8. Network 탭으로 확인한 것</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1110/1110-Network-%ED%83%AD-members-%EC%9A%94%EC%B2%AD.png" alt="Network 탭으로 확인한 것" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">Network 탭으로 확인한 것</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">브라우저 개발자 도구의 Network 탭에서 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">members</code> 요청 세 줄이 보였다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">줄</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">Status</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">members</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">(canceled)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Strict Mode 1회차 요청을 AbortController가 취소 (정상)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">members</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">200</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">실제 조회 성공</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">members</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">200</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">"다시 조회" 버튼으로 재요청</td>
+</tr>
+</tbody>
+</table>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>검색어를 입력해도 요청은 나가지 않는다. 받아 둔 데이터를 브라우저에서 필터링하기 때문이다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">9. 만난 문제와 해결</h2>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">증상</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">원인</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">해결</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">붙여 넣은 줄마다 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">'✓' 용어가 ... 인식되지 않습니다</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">결과 예시를 터미널에 붙여 넣음</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">명령만 실행하고 결과는 눈으로 비교</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">import type ...</code> 터미널 에러</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">코드를 에디터가 아닌 터미널에 붙임</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">붙이기 전에 커서 위치 확인</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">npm error ENOENT ... package.json</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">react</code> 폴더에서 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">npm run dev</code> 실행</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">member-next-app</code>으로 이동 후 실행</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/members</code> 요청에 <strong>Django 404</strong> 화면</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">다른 Docker 컨테이너가 8000번 사용 중</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">해당 컨테이너 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">docker stop</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">DLL load failed ... 애플리케이션 제어 정책에서 차단</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Windows 보안이 SQLAlchemy 가속(C 확장) 파일을 차단</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">DISABLE_SQLALCHEMY_CEXT=1</code>로 순수 Python 버전 재설치</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">조회 오류: Failed to fetch</code> + <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">ERR_CONNECTION_REFUSED</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">FastAPI가 꺼져 있음</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">api 터미널에서 FastAPI 재실행</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">빨간 물결인데 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">tsc</code> 결과는 0</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">VS Code 표시 지연</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">TypeScript: Restart TS Server</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">ESLint <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">react-hooks/set-state-in-effect</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">useEffect</code> 안에서 바로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">setLoading(true)</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">버튼 클릭 함수에서 상태 변경, 응답 콜백에서 결과 반영</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">다크 모드에서 제목이 안 보임</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">제목 색이 검은 배경과 비슷</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">제목만 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">color: "inherit"</code></td>
+</tr>
+</tbody>
+</table>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-powershell"># SQLAlchemy 순수 Python 재설치 (C 확장 DLL이 차단될 때)
+$env:DISABLE_SQLALCHEMY_CEXT = &quot;1&quot;
+python -m pip install --force-reinstall --no-deps --no-binary sqlalchemy &quot;sqlalchemy==&lt;설치된 버전&gt;&quot;
+</code></pre>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">"스마트 앱 컨트롤 끄기"는 한 번 끄면 Windows를 다시 설치하기 전에는 켤 수 없어서 하지 않았다.</p>
+</blockquote>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">Phase 02의 백엔드를 Phase 03으로 복사할 때는 이것들을 바꿨다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">from app.xxx import</code> → <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">from backend.xxx import</code> (6개 파일)</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">config.py</code>의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">ENV_PATH</code>를 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">react\.env</code>를 읽도록 수정</li>
+<li>실행은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">react</code> 폴더에서 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">python -m uvicorn backend.main:app ...</code></li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">10. 오늘의 핵심 정리와 남은 일</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>Props는 받기만, State는 바꾸면 화면이 다시 그려진다.</strong></li>
+<li>데이터 가져오기는 <strong>fetch + useEffect + Loading/Empty/Error 세 가지 상태 + AbortController</strong> 한 세트다.</li>
+<li>화면의 입력 검사는 편의일 뿐이고, 최종 검증은 <strong>백엔드(Pydantic)</strong> 가 한다.</li>
+<li>환경 설정 파일은 <strong>누가 읽는지</strong>(FastAPI vs Next.js)와 <strong>비밀값이 들어가는지</strong>로 구분하고, 비밀값 파일은 커밋하지 않는다.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">남은 일과 다음 강의는 이렇다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">git check-ignore -v .env.local ..\.env</code>로 두 파일이 모두 무시되는지 확인한 뒤 커밋한다. (<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">git add .</code> 대신 파일명을 지정)</li>
+<li>5강: 회원 등록 폼에서 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">POST /members</code>로 실제 DB에 저장하고, 저장 후 목록을 다시 조회한다.</li>
+<li>5강에서는 화면 검사(3강)와 백엔드 Pydantic 검사를 함께 사용한다.</li>
+</ul>
+</div>

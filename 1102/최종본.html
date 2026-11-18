@@ -1,0 +1,138 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘 데일리 퀘스트는 <strong>서버가 요청을 처리하는 방식(WSGI와 ASGI)</strong>, <strong>로그 레벨</strong>, <strong>로깅 설정을 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">logger.py</code>로 분리하는 이유</strong>, 그리고 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">--reload</code> 옵션</strong>을 다뤘다. 풀고 나서 틀린 문제가 있어서, 어떤 점을 헷갈렸는지 오답노트까지 함께 정리해 둔다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>WSGI는 요청마다 스레드를 1:1로 할당</strong>하고, <strong>ASGI는 단일 스레드의 이벤트 루프가 코루틴을 번갈아 실행</strong>한다.</li>
+<li>로그는 <strong>설정한 레벨 이상</strong>만 출력된다. DB 커넥션 풀 고갈은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">WARNING</code>이 아니라 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">CRITICAL</code></strong> 이다.</li>
+<li>로깅 설정은 엔드포인트 코드에 <strong>인프라 설정이 섞이지 않게</strong> <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">logger.py</code>로 분리한다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">--reload</code>는 <strong>개발 편의용</strong>이고, 운영에서는 제외한다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. WSGI vs ASGI: 요청을 처리하는 방식이 다르다</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1102/1102-WSGI%EC%99%80-ASGI-%EB%B9%84%EA%B5%90.png" alt="WSGI vs ASGI: 요청을 처리하는 방식이 다르다" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">WSGI vs ASGI: 요청을 처리하는 방식이 다르다</figcaption></figure>
+
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;"></th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">WSGI</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">ASGI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">처리 방식</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">요청마다 <strong>OS 스레드를 1:1로 할당</strong>해서 순차 처리</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>단일 스레드가 이벤트 루프</strong>로 여러 코루틴을 번갈아 실행</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">한 줄 요약</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">요청 하나에 일꾼(스레드) 하나</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">일꾼 한 명이 기다리는 동안 다른 일을 처리</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">I/O 대기 중</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">스레드가 <strong>블로킹 상태</strong>로 멈춰 있음</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">대기하는 코루틴은 양보하고 다른 코루틴이 실행됨</td>
+</tr>
+</tbody>
+</table>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">ASGI의 본질은 <strong>협력적 멀티태스킹(cooperative multitasking)</strong> 이다. 코루틴이 스스로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">await</code>에서 실행권을 넘겨주고, 이벤트 루프가 그 사이에 다른 코루틴을 실행한다.</p>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">I/O 대기와 블로킹 상태</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">WSGI에서 DB 쿼리나 외부 API 요청처럼 <strong>I/O 대기</strong>가 생기면, 그 요청을 맡은 스레드는 응답이 올 때까지 <strong>블로킹 상태</strong>로 기다린다. 동시 요청이 많아지면 스레드 풀의 스레드가 모두 대기 중이 되어 <strong>스레드 풀 자원이 고갈</strong>될 수 있다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-text">WSGI : 요청A → [스레드1: DB 응답 대기 (블로킹)]
+       요청B → [스레드2: 외부 API 응답 대기 (블로킹)]   ← 스레드가 다 차면 새 요청이 대기
+ASGI : 요청A, 요청B → [스레드 1개 + 이벤트 루프] A가 기다리는 동안 B를 실행
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">FastAPI는 ASGI 서버(Uvicorn) 위에서 동작한다. 이전 글에서 쓴 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">uvicorn main:app</code>의 Uvicorn이 ASGI 서버다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 로그 레벨</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1102/1102-%EB%A1%9C%EA%B7%B8-%EB%A0%88%EB%B2%A8-5%EB%8B%A8%EA%B3%84.png" alt="로그 레벨" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">로그 레벨</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">로그는 중요도에 따라 레벨을 나눠서 기록한다. 낮은 레벨일수록 자세하고, 높은 레벨일수록 심각하다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">레벨</th>
+<th style="text-align: right;" style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">값</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">DEBUG</code></td>
+<td style="text-align: right;" style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">10</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">개발 중 상세 추적. <strong>실행된 SQL 쿼리문 출력</strong></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">INFO</code></td>
+<td style="text-align: right;" style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">20</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">정상적인 동작 기록 (서버 시작, 요청 처리 완료)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">WARNING</code></td>
+<td style="text-align: right;" style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">30</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">당장은 문제없지만 주의가 필요한 상황</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">ERROR</code></td>
+<td style="text-align: right;" style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">40</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">특정 기능이 실패한 오류</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">CRITICAL</code></td>
+<td style="text-align: right;" style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">50</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">시스템 전체가 마비될 수 있는 치명적 상황. <strong>DB 커넥션 풀 고갈</strong></td>
+</tr>
+</tbody>
+</table>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">설정한 레벨 <strong>이상</strong>의 로그만 출력된다. 예를 들어 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">INFO</code>로 설정하면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">DEBUG</code>는 출력되지 않는다.</p>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>오답 포인트</strong>: "DB 커넥션 풀 고갈"은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">WARNING</code>이 아니라 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">CRITICAL</code></strong> 이다. 새 요청이 DB에 접근할 수 없게 되어 시스템 전체가 멈출 수 있기 때문이다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. 로깅 설정을 logger.py로 분리하는 이유</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1102/1102-logger-%EB%B6%84%EB%A6%AC-%EA%B5%AC%EC%A1%B0.png" alt="로깅 설정을 logger.py로 분리하는 이유" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">로깅 설정을 logger.py로 분리하는 이유</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">아래 코드는 개념 이해용 예시다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python"># logger.py (개념 이해용 예시)
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format=&quot;%(asctime)s [%(levelname)s] %(name)s - %(message)s&quot;,
+)
+logger = logging.getLogger(&quot;app&quot;)
+</code></pre>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python"># main.py
+from fastapi import FastAPI
+from logger import logger
+
+app = FastAPI()
+
+@app.get(&quot;/members&quot;)
+def get_members():
+    logger.info(&quot;회원 목록 조회&quot;)
+    return []
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>분리하는 이유</strong></p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>API 엔드포인트 코드에 <strong>시스템 인프라 설정이 섞이지 않게</strong> 한다.</li>
+<li>설정을 한 곳에서 관리하고 여러 모듈이 같은 로거를 가져다 쓴다.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>분리의 목적이 아닌 것</strong>: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">logging</code> 모듈은 <strong>순수한 기록용 표준 라이브러리</strong>다. 워커 프로세스 관리나 서버의 물리적 처리 속도 향상과는 무관하다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. --reload: 코드 변경을 감지해 서버 자동 재시작</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1102/1102-reload-%EC%9E%90%EB%8F%99-%EC%9E%AC%EC%8B%9C%EC%9E%91-%ED%9D%90%EB%A6%84.png" alt="--reload: 코드 변경을 감지해 서버 자동 재시작" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">--reload: 코드 변경을 감지해 서버 자동 재시작</figcaption></figure>
+
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-powershell">python -m uvicorn main:app --reload --port 8010
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">--reload</code>를 쓰면 <strong>파일 워처</strong>가 소스 코드 변경을 감지해서 서버를 자동으로 재시작한다(핫 리로드). 코드를 저장하고 Swagger를 새로고침만 하면 된다.</p>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>운영(프로덕션)에서는 제외한다.</strong> 파일을 계속 감시하는 것 자체가 부담이라 성능이 떨어진다. 개발 편의용 옵션이다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오답노트 (2026-11-02)</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>1번: ASGI의 특징을 WSGI의 특징으로 골랐다.</strong> "요청마다 스레드를 1:1로 할당해 순차 처리"는 <strong>WSGI</strong>다. ASGI는 "단일 스레드 + 이벤트 루프 + 코루틴 번갈아 실행"이다. 키워드로 외우면 <strong>스레드 1:1 = WSGI, 이벤트 루프 = ASGI</strong>.</li>
+<li><strong>3번, 4번: "올바르지 않은 것", "타당하지 않은 것"을 묻는 부정 문제를 거꾸로 읽었다.</strong></li>
+<li>3번에서 고른 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">DEBUG - SQL 쿼리문 출력</code>은 <strong>올바른</strong> 연결이었다. 틀린 연결은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">WARNING - DB 커넥션 풀 고갈</code>(정답은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">CRITICAL</code>)이었다.</li>
+<li>4번에서 고른 "엔드포인트 영역에 인프라 설정이 섞이지 않게"는 <strong>타당한</strong> 이유였다. 타당하지 않은 것은 "워커 프로세스 관리나 처리 속도 향상" 같은 설명이었다.</li>
+<li>선지를 읽을 때마다 "이게 <strong>맞는</strong> 설명인가?"를 먼저 판단한 뒤, 문제가 요구하는 쪽(맞는 것 또는 틀린 것)으로 거르는 습관이 필요하다.</li>
+</ul>
+</div>

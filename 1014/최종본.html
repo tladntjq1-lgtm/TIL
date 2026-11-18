@@ -1,0 +1,88 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘은 쇼핑몰 프로젝트(상품 목록 → 상품 상세)를 만들면서 Next.js App Router의 기본 규칙과 TypeScript의 선택 속성을 배웠다. 퀴즈에서 틀린 부분도 오답노트로 함께 정리해 둔다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>App Router에서는 <strong>폴더 이름이 곧 URL</strong>이고, 그 폴더 안의 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">page.tsx</code></strong> 가 그 주소의 화면이다.</li>
+<li>동적 라우팅은 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">[id]</code> 폴더 + 그 안의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">page.tsx</code></strong> 로 만든다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">[id].tsx</code> 파일 방식이 아니다.</li>
+<li>TypeScript에서 속성 이름 뒤에 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">?</code></strong> 가 붙으면 없어도 되는 <strong>선택 속성</strong>이다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. App Router: 폴더 이름이 곧 URL</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1014/1014-%ED%8F%B4%EB%8D%94%EA%B5%AC%EC%A1%B0%EC%99%80-URL-%EA%B2%BD%EB%A1%9C.png" alt="App Router: 폴더 이름이 곧 URL" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">App Router: 폴더 이름이 곧 URL</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">App Router에서는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">app/</code> 아래의 <strong>폴더 구조가 그대로 URL 경로</strong>가 되고, 각 폴더 안의 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">page.tsx</code></strong> 파일이 그 주소의 화면이 된다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">파일 위치</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">접속 주소</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">app/products/page.tsx</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/products</code> (상품 목록)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">app/products/[id]/page.tsx</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/products/1</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/products/2</code> ... (상품 상세)</td>
+</tr>
+</tbody>
+</table>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 동적 라우팅: id 폴더와 헷갈렸던 오답 구조</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1014/1014-%EB%8F%99%EC%A0%81-%EB%9D%BC%EC%9A%B0%ED%8C%85-%EC%A0%95%EB%8B%B5%EA%B3%BC-%EC%98%A4%EB%8B%B5.png" alt="동적 라우팅: id 폴더와 헷갈렸던 오답 구조" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">동적 라우팅: id 폴더와 헷갈렸던 오답 구조</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">대괄호로 감싼 <strong>폴더명(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">[id]</code>)</strong> 이 동적 세그먼트가 된다. 1이든 2든 어떤 값이 들어와도 이 폴더가 받는다. 그 안에 반드시 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">page.tsx</code></strong> 를 두고, URL 파라미터로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">id</code>를 전달받는다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code>app/
+└── products/
+    ├── page.tsx          → /products
+    └── [id]/
+        └── page.tsx      → /products/:id
+</code></pre>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">헷갈렸던 오답 구조: app/products/page/[id].tsx</h3>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">page</code>는 폴더 이름이 아니라 <strong>파일 이름</strong>(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">page.tsx</code>)이다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">[id]</code>가 <strong>폴더가 아니라 파일</strong>로 되어 있다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">[id].tsx</code> 같은 파일 방식은 예전 <strong>Pages Router</strong> 스타일이라 App Router의 폴더 기반 라우팅 규칙과 맞지 않는다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. 목록 렌더링: map</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">배열 형태의 가상 상품 데이터를 순회하며 각 상품을 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">ProductCard</code> 컴포넌트로 반복 렌더링할 때는 자바스크립트 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.map()</code></strong> 을 쓴다. 배열의 각 요소를 변환해 <strong>새로운 배열(여기서는 JSX 요소들)</strong> 을 반환한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-tsx">{products.map((product) =&gt; (
+  &lt;ProductCard key={product.id} product={product} /&gt;
+))}
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 페이지 이동: Link</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">일반 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">&lt;a&gt;</code> 태그는 클릭할 때마다 전체 페이지를 새로고침하지만, Next.js의 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">&lt;Link&gt;</code></strong> 컴포넌트는 <strong>화면 깜빡임 없이</strong> 페이지를 전환한다. SPA 방식의 클라이언트 사이드 네비게이션이다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-tsx">import Link from &quot;next/link&quot;;
+
+&lt;Link href={`/products/${product.id}`}&gt;상세 보기&lt;/Link&gt;
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. TypeScript: 선택 속성</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1014/1014-TypeScript-%EC%84%A0%ED%83%9D-%EC%86%8D%EC%84%B1.png" alt="TypeScript: 선택 속성" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">TypeScript: 선택 속성</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">interface</code>에서 속성 이름 뒤에 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">?</code></strong> 가 붙으면 "없어도 되는" 선택 속성(optional property)이다. 신청서에서 이름과 전화번호는 필수, 별명은 선택인 것과 같다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-ts">interface Product {
+  id: number;        // 필수 - 상품마다 꼭 있어야 하는 식별자
+  price: number;     // 필수
+  imageUrl: string;  // 필수
+  isNew?: boolean;   // 선택 - 신상품이 아닌 상품은 생략 가능
+}
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 프로젝트 범위: 필수 구현과 제외 범위</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1014/1014-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8-%EB%B2%94%EC%9C%84-%ED%95%84%EC%88%98%EC%99%80-%EC%A0%9C%EC%99%B8.png" alt="프로젝트 범위: 필수 구현과 제외 범위" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">프로젝트 범위: 필수 구현과 제외 범위</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">이번 쇼핑몰 프로젝트는 <strong>프론트엔드 화면 구현</strong>에 집중하는 범위였고, 아래 항목들은 <strong>제외 범위</strong>였다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>회원가입/로그인 폼</li>
+<li>실제 데이터베이스 연결</li>
+<li>장바구니 서버 저장</li>
+<li>PG사 결제 모듈</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">반대로 가상 데이터 기반의 상품 목록/상세 페이지, 동적 라우팅, 컴포넌트 렌더링 등은 필수 구현 범위다.</p>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">"무엇을 만들지"뿐 아니라 "<strong>무엇을 만들지 않을지</strong>"를 먼저 정하는 것이 프로젝트 범위 관리의 시작이다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오답노트</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>동적 라우팅 구조를 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">[id].tsx</code> 파일 형태로 착각했다.</strong> → App Router는 "<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">[id]</code> <strong>폴더</strong> + 그 안의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">page.tsx</code>"라고 외운다. 폴더 이름이 주소, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">page.tsx</code>가 화면이다.</li>
+<li><strong>TypeScript 선택 속성을 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">id</code>로 골랐다.</strong> → <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">?</code>가 붙은 것만 선택 속성이다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">id</code>처럼 식별자 역할을 하는 값은 필수인 경우가 대부분이고, 있어도 되고 없어도 되는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">isNew?</code> 같은 부가 정보가 선택 속성이 된다.</li>
+</ul>
+</div>

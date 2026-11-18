@@ -1,0 +1,221 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘은 회원관리 페이지(헤더 + 검색 툴바 + 회원 카드 목록)를 만들면서 <strong>CSS 레이아웃(Flexbox, Grid, 반응형)</strong> 을 단계별로 익혔다. 이어서 사칙연산 계산기와 회원 데이터 관리를 만들며 <strong>JavaScript의 DOM 이벤트, 입력 검증, 함수·배열·객체</strong>를 정리했다. 코드는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">fullstack-web-course</code>의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">phase06</code>~<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">phase09</code>에 있다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>배치 방향이 <strong>한 줄</strong>이면 Flexbox, <strong>행과 열의 격자</strong>이면 Grid다.</li>
+<li>반응형은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">viewport</code> 메타 태그 → 유연한 너비(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">%</code> + <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">max-width</code>) → <strong>Mobile First 미디어 쿼리</strong> 순서로 쌓는다.</li>
+<li>입력값 검증은 <strong>빈 값 → 숫자인지 → 변환 → 0으로 나누기</strong> 순서가 중요하다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">map()</code>은 요소를 <strong>변환</strong>하고, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">filter()</code>는 조건에 맞는 요소만 <strong>골라낸다</strong>.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. Flexbox: 한 줄(1차원) 배치</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1021a/1021-Flexbox-%EC%A3%BC%EC%B6%95%EA%B3%BC-%EA%B5%90%EC%B0%A8%EC%B6%95.png" alt="Flexbox: 한 줄(1차원) 배치" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">Flexbox: 한 줄(1차원) 배치</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">헤더, 툴바, 카드 안의 버튼처럼 <strong>가로 또는 세로 한 방향</strong>으로 요소를 배치할 때 쓴다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-css">.site-header {
+    display: flex;
+    justify-content: space-between; /* 제목은 왼쪽, 메뉴는 오른쪽 끝 */
+    align-items: center;            /* 세로 가운데 정렬 */
+}
+
+.main-nav {
+    display: flex;
+    gap: 16px;                      /* 요소 사이 간격 */
+}
+</code></pre>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">속성</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">역할</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">display: flex</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">자식 요소들을 한 줄로 배치하는 컨테이너로 만듦</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">justify-content</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>주축(기본은 가로)</strong> 방향 정렬 (<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">space-between</code> = 양 끝으로 벌림)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">align-items</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>교차축(기본은 세로)</strong> 방향 정렬</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">gap</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">자식 사이의 간격</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">flex: 1</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">남은 공간을 최대한 차지</td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">검색창이 남은 공간을 차지하게 하기</h3>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-css">.toolbar { display: flex; gap: 12px; align-items: center; }
+.toolbar input { flex: 1; }   /* 버튼 두 개를 제외한 나머지 폭을 검색창이 다 차지 */
+</code></pre>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">카드 안에서 세로로 쌓고, 버튼은 가로로 배치</h3>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-css">.member-card   { display: flex; flex-direction: column; }  /* 제목·이메일·과정이 세로로 */
+.card-actions  { display: flex; gap: 8px; margin-top: 16px; } /* 상세·수정 버튼은 가로로 */
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. Grid: 격자(2차원) 배치</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1021a/1021-Flexbox%EC%99%80-Grid-%EB%B9%84%EA%B5%90.png" alt="Grid: 격자(2차원) 배치" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">Grid: 격자(2차원) 배치</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">회원 카드처럼 <strong>행과 열이 있는 목록</strong>은 Grid가 맞다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-css">.member-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 같은 너비의 3열 */
+    gap: 20px;
+}
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">1fr</code>은 "남은 공간을 1비율로 나눠 갖기"라는 뜻이다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">repeat(3, 1fr)</code>은 3등분이다.</li>
+<li><strong>Flexbox는 한 방향 배치, Grid는 행·열 격자 배치</strong>라고 구분하면 헷갈리지 않는다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. 반응형 웹: viewport, 유연한 컨테이너, Mobile First</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1021a/1021-Mobile-First-%EB%B0%98%EC%9D%91%ED%98%95.png" alt="반응형 웹: viewport, 유연한 컨테이너, Mobile First" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">반응형 웹: viewport, 유연한 컨테이너, Mobile First</figcaption></figure>
+
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">viewport 메타 태그</h3>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-html">&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">이게 없으면 모바일 브라우저가 페이지를 데스크톱 너비로 가정하고 축소해서 보여준다. 반응형의 출발점이다.</p>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">유연한 컨테이너: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">width</code> + <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">max-width</code></h3>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-css">.page-container {
+    width: 90%;        /* 작은 화면에서는 화면의 90% */
+    max-width: 1200px; /* 큰 화면에서는 1200px을 넘지 않음 */
+    margin: 0 auto;    /* 가운데 정렬 */
+}
+</code></pre>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">Mobile First + 미디어 쿼리</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>작은 화면(모바일) 스타일을 기본값</strong>으로 먼저 쓰고, 화면이 넓어질 때만 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">min-width</code> 미디어 쿼리로 덮어쓴다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-css">/* 기본 (모바일): 1열, 헤더는 세로 배치 */
+.member-grid  { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.page-header  { display: flex; flex-direction: column; }
+
+/* 태블릿 (768px 이상): 2열, 헤더는 가로 배치 */
+@media (min-width: 768px) {
+    .member-grid { grid-template-columns: repeat(2, 1fr); }
+    .page-header { flex-direction: row; justify-content: space-between; align-items: center; }
+}
+
+/* 데스크톱 (1024px 이상): 3열 */
+@media (min-width: 1024px) {
+    .member-grid { grid-template-columns: repeat(3, 1fr); }
+}
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">흐름은 <strong>1열 → 2열 → 3열</strong>, <strong>세로 헤더 → 가로 헤더</strong>다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 화면 밖으로 넘치는 것 막기</h2>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-css">input, select, textarea { width: 100%; box-sizing: border-box; } /* padding이 너비에 포함되어 가로 스크롤 방지 */
+img { max-width: 100%; height: auto; }                           /* 이미지가 컨테이너보다 커지지 않게, 비율 유지 */
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">box-sizing: border-box</code>가 없으면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">width: 100%</code> + <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">padding</code>이 합쳐져 부모보다 커지면서 가로 스크롤이 생긴다.</li>
+<li>폼 요소와 이미지는 이렇게 따로 넘침을 막아 줘야 한다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. JavaScript: DOM 요소 가져오기와 이벤트 등록</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">사칙연산 계산기(Chapter 08)에서 가장 먼저 한 일은 HTML 요소를 가져와 클릭 이벤트를 붙이는 것이다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-js">const num1Input = document.getElementById('num1');
+const calcBtn   = document.getElementById('calcBtn');
+
+calcBtn.addEventListener('click', function () {
+    // 버튼이 클릭될 때 실행할 코드
+});
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">document.getElementById('id')</code>: HTML의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">id</code>로 요소를 찾는다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">addEventListener('click', 함수)</code>: 클릭 같은 이벤트가 일어났을 때 실행할 함수를 등록한다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">&lt;script src="app.js"&gt;</code>는 요소들이 만들어진 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">&lt;/body&gt;</code> 직전</strong>에 두어야, 스크립트가 실행될 때 요소를 찾을 수 있다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 입력값 검증은 순서가 중요하다</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1021a/1021-%EC%9E%85%EB%A0%A5%EA%B0%92-%EA%B2%80%EC%A6%9D-%EC%88%9C%EC%84%9C.png" alt="입력값 검증은 순서가 중요하다" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">입력값 검증은 순서가 중요하다</figcaption></figure>
+
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-js">const rawNum1 = num1Input.value.trim();   // 입력값은 항상 &quot;문자열&quot;
+
+if (rawNum1 === '' || rawNum2 === '') { alert('두 숫자를 모두 입력해 주세요.'); return; }   // 1. 비었는지
+if (isNaN(rawNum1) || isNaN(rawNum2)) { alert('올바른 숫자를 입력해 주세요.'); return; }    // 2. 숫자인지
+const num1 = Number(rawNum1);                                                              // 3. 변환
+if (operator === '/' &amp;&amp; num2 === 0)   { alert('0으로 나눌 수 없습니다.'); return; }         // 4. 0으로 나누기
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">input.value</code>는 숫자를 입력해도 <strong>문자열</strong>이라, 계산 전에 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Number()</code>로 바꿔야 한다. (<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">"1" + "2"</code>는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">"12"</code>)</li>
+<li><strong>빈 값 검사를 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">isNaN</code>보다 먼저</strong> 해야 한다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">isNaN('')</code>은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">false</code>다. 빈 문자열이 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Number('')</code>에서 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">0</code>으로 바뀌기 때문이다. 그래서 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">isNaN</code>만으로는 빈 입력을 걸러내지 못한다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.trim()</code>으로 앞뒤 공백을 제거해야 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">"   "</code> 같은 입력도 빈 값으로 처리된다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">return</code>으로 검증에 실패하면 함수를 즉시 끝낸다. Python 예외 처리에서 "정상 입력만 테스트하면 안 된다"고 했던 것과 같은 생각이다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">7. 연산자 분기: switch</h2>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-js">switch (operator) {
+    case '+': result = num1 + num2; break;
+    case '-': result = num1 - num2; break;
+    case '*': result = num1 * num2; break;
+    case '/': result = num1 / num2; break;
+}
+alert(`결과: ${num1} ${operator} ${num2} = ${result}`);
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">break</code>가 없으면 아래 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">case</code>까지 계속 실행된다.</li>
+<li>백틱(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">`</code>)과 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">${}</code>를 쓰는 <strong>템플릿 리터럴</strong>은 Python의 f-string과 같은 역할이다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">8. 함수, 배열, 객체</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">회원 데이터 관리(Chapter 09)에서는 함수와 배열, 객체를 함께 썼다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-js">function greet(name, age) {
+    return `안녕하세요, ${age}세 ${name}님! 환영합니다.`;   // 값을 반환
+}
+
+let users = [
+    { id: 1, name: '김철수', age: 25, isActive: true },
+    { id: 2, name: '이영희', age: 30, isActive: false },
+];
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>배열 안에 객체</strong>를 담는 구조는 Python의 리스트 안의 딕셔너리와 같다. 한 행이 객체 하나인 표 형태 데이터다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">9. map()과 filter()</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1021a/1021-map%EA%B3%BC-filter.png" alt="map()과 filter()" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">map()과 filter()</figcaption></figure>
+
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">메서드</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">하는 일</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">map(fn)</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">각 요소를 <strong>변환</strong>해서</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">같은 길이의 새 배열</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">filter(fn)</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">조건이 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">true</code>인 요소만 <strong>골라서</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">길이가 줄어들 수 있는 새 배열</td>
+</tr>
+</tbody>
+</table>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-js">// map: 모든 회원을 &lt;li&gt; 문자열로 변환
+const userHtmls = users.map(user =&gt; `&lt;li&gt;이름: ${user.name} / 나이: ${user.age}세&lt;/li&gt;`);
+userListEl.innerHTML = userHtmls.join('');   // 배열을 하나의 문자열로 합침
+
+// filter: isActive가 true인 회원만
+const activeUsers = users.filter(user =&gt; user.isActive);
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>둘 다 <strong>원본 배열을 바꾸지 않고</strong> 새 배열을 반환한다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">map</code> 결과는 배열이라 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">innerHTML</code>에 넣기 전에 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.join('')</code>으로 문자열로 합쳐야 한다. 안 하면 쉼표가 같이 찍힌다.</li>
+<li>Next.js 퀴즈에서 상품 목록을 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.map()</code>으로 카드 컴포넌트로 바꿨던 것이 같은 개념이다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">10. 배열에 추가하고 화면 다시 그리기</h2>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-js">const lastId = users.length &gt; 0 ? users[users.length - 1].id : 0;   // 삼항 연산자: 비었으면 0부터
+const newUser = { id: lastId + 1, name: userName, age: userAge, isActive: userAge &lt; 50 };
+users.push(newUser);   // 배열 끝에 추가
+renderUsers();         // 화면을 그리는 코드를 함수로 만들어 두었기 때문에 다시 호출만 하면 된다
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">핵심 패턴은 <strong>데이터(배열)를 바꾸고 → 그리는 함수를 다시 호출</strong>하는 것이다. 화면을 직접 고치는 대신 데이터와 렌더링을 분리하면 추가/삭제가 쉬워진다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">11. 짚고 넘어간 점</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">!userAge</code>로 나이를 검증하면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">0</code>도 "입력 없음"이 된다.</strong> <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">0</code>은 falsy라서다. 빈 값 여부와 숫자 여부는 따로 검사하는 편이 정확하다. (Python의 Falsy 값과 같은 원리)</li>
+<li><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">innerHTML</code>에 사용자 입력을 그대로 넣으면 위험하다.</strong> 이름 칸에 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">&lt;script&gt;</code>나 HTML 태그를 넣으면 그대로 해석될 수 있다(XSS). 사용자 입력은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">textContent</code>로 넣는 것이 안전하다. 이번 실습은 학습용이라 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">innerHTML</code>을 썼지만 실제 서비스에서는 피해야 한다.</li>
+<li><strong>HTML 오타는 화면에 그대로 보인다.</strong> Chapter 08 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">index.html</code>의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">&lt;/select&gt;s</code>처럼 태그 뒤에 글자 하나가 붙으면 에러 없이 화면에 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">s</code>가 찍힌다. HTML은 문법 오류를 알려주지 않고 조용히 렌더링하므로 브라우저로 직접 확인해야 한다.</li>
+</ul>
+</div>

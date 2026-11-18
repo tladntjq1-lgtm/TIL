@@ -1,0 +1,107 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘 퀘스트는 5문항 모두 정답이었다. 새로 나온 개념 3가지(키 페어 권한, 스왑, 미들웨어 순서)를 정리하고, 어제와 그저께 배운 내용이 다시 나온 두 문항은 복습으로 짧게 적어 둔다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>키 페어(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.pem</code>) 파일은 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">chmod 400</code></strong> 으로 소유자만 읽게 해야 SSH가 접속을 허락한다.</li>
+<li><strong>스왑(Swap)</strong> 은 디스크를 메모리처럼 빌려 쓰는 <strong>임시 방편</strong>이고, OOM Killer의 강제 종료를 막아 준다.</li>
+<li>미들웨어는 양파 껍질이다. <strong>요청은 "나중에 등록한 것부터", 응답은 "먼저 등록한 것부터"</strong> 지나간다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 키 페어(.pem) 파일은 왜 chmod 400인가</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1106/1106-chmod-400-%EC%9E%90%EB%A6%AC%EB%B3%84-%EA%B6%8C%ED%95%9C.png" alt="키 페어(.pem) 파일은 왜 chmod 400인가" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">키 페어(.pem) 파일은 왜 chmod 400인가</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">EC2 서버에 SSH로 접속할 때는 비밀번호 대신 다운로드한 <strong>키 페어 파일(.pem)</strong> 을 쓴다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-bash">chmod 400 my-key.pem                 # 소유자만 읽기 가능, 나머지는 아무 권한 없음
+ssh -i my-key.pem ubuntu@&lt;서버주소&gt;
+</code></pre>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">위 파일 이름(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">my-key.pem</code>)과 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">&lt;서버주소&gt;</code>는 형식을 보여 주려는 자리표시자다. 실제 키 파일 이름이나 서버 주소가 아니다.</p>
+</blockquote>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>리눅스(SSH)는 키 파일을 <strong>소유자 외의 다른 사용자도 읽을 수 있게 열려 있으면 보안 위험으로 판단하고 접속을 거부</strong>한다. (<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">UNPROTECTED PRIVATE KEY FILE</code> 경고)</li>
+<li>그래서 소유자만 읽도록 <strong>400</strong>으로 제한한다.</li>
+<li>파일 전송 속도, 환경 변수 동기화, Nginx 렌더링과는 관계가 없다.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">숫자는 자리마다 대상이 다르다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">숫자</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">대상</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">400의 뜻</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">첫째 자리 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">4</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">소유자</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">읽기(r)만</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">둘째 자리 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">0</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">그룹</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">권한 없음</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">셋째 자리 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">0</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">그 외 사용자</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">권한 없음</td>
+</tr>
+</tbody>
+</table>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">키 페어 파일은 비밀번호와 같다. Git 저장소에 올리거나 공유하지 않는다. 이 글에도 실제 키 파일과 서버 IP는 싣지 않는다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 스왑(Swap): 디스크를 메모리처럼 빌려 쓰기</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1106/1106-%EC%8A%A4%EC%99%91-%EB%A9%94%EB%AA%A8%EB%A6%AC-OOM-Killer.png" alt="스왑(Swap): 디스크를 메모리처럼 빌려 쓰기" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">스왑(Swap): 디스크를 메모리처럼 빌려 쓰기</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">EC2 프리티어 같은 환경은 RAM이 작아서 서버를 올리다 메모리가 부족해질 수 있다. 메모리가 부족하면 리눅스의 <strong>OOM Killer</strong>가 프로세스를 <strong>강제로 종료</strong>한다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>스왑(Swap)</strong>: 실제 RAM이 부족할 때 <strong>하드디스크 공간을 메모리처럼 임시로 사용</strong>하는 기술.</li>
+<li>스왑을 잡아두면 메모리가 순간적으로 부족해도 OOM Killer에 의한 강제 종료를 막을 수 있다.</li>
+<li>디스크는 RAM보다 훨씬 느리므로 <strong>임시 방편</strong>이다. 근본적으로는 메모리 사용량을 줄이거나 인스턴스 사양을 올려야 한다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. 미들웨어는 양파 껍질: 나중에 등록한 것이 바깥쪽</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1106/1106-%EB%AF%B8%EB%93%A4%EC%9B%A8%EC%96%B4-%EC%96%91%ED%8C%8C-%EC%8B%A4%ED%96%89%EC%88%9C%EC%84%9C.png" alt="미들웨어는 양파 껍질: 나중에 등록한 것이 바깥쪽" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">미들웨어는 양파 껍질: 나중에 등록한 것이 바깥쪽</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">미들웨어는 요청이 API 함수에 도착하기 전과 응답이 나가기 전에 끼어들어 공통 처리(로깅, 인증, CORS 등)를 하는 계층이다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">@app.middleware(&quot;http&quot;)
+async def middleware_a(request, call_next):    # 먼저 등록
+    print(&quot;A 요청 진입&quot;)
+    response = await call_next(request)
+    print(&quot;A 응답 나감&quot;)
+    return response
+
+@app.middleware(&quot;http&quot;)
+async def middleware_b(request, call_next):    # 나중에 등록
+    print(&quot;B 요청 진입&quot;)
+    response = await call_next(request)
+    print(&quot;B 응답 나감&quot;)
+    return response
+</code></pre>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-text">요청 :  클라이언트 → B → A → 실제 API 함수
+응답 :  클라이언트 ← B ← A ← 실제 API 함수
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>나중에 등록한 미들웨어가 가장 바깥쪽 껍질</strong>이 되어 요청 시 <strong>가장 먼저</strong> 실행된다.</li>
+<li>응답은 반대 방향으로, 안쪽부터 바깥쪽으로 빠져나간다.</li>
+<li>한 줄로: <strong>요청은 "나중에 등록한 것부터", 응답은 "먼저 등록한 것부터".</strong></li>
+</ul>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">위 코드는 순서를 보여 주려고 만든 예시다. 출력 순서는 B 진입, A 진입, (API 함수), A 나감, B 나감이다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 복습: N+1 문제와 joinedload()</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>N+1 문제의 원인은 <strong>지연 로딩(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">lazyload</code>)</strong> 이고, 해결은 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">joinedload()</code></strong> 로 JOIN 1회에 같이 가져오는 것이다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">defer()</code>와 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">load_only()</code>는 연관 테이블이 아니라 <strong>특정 컬럼의 로딩</strong>을 제어하는 옵션이라 N+1과 목적이 다르다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. 복습: exclude_unset=True</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>PUT 수정에서 <strong>클라이언트가 실제로 보낸 필드만</strong> 추출한다: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">payload.model_dump(exclude_unset=True)</code>.</li>
+<li>안 보낸 필드가 기본값(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">None</code>)으로 기존 데이터를 덮어쓰는 것을 막는다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 오늘의 결과</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>5문항 전부 정답. 4번(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">joinedload</code>)과 5번(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">exclude_unset</code>)은 직전 퀘스트에서 틀렸던 유형인데 이번에 맞혔다.</li>
+<li>오답노트는 없다. 다음에 흔들리기 쉬운 부분은 <strong>미들웨어 순서(요청과 응답 방향)</strong> 와 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">chmod</code> 숫자의 자리별 의미</strong>다.</li>
+</ul>
+</div>

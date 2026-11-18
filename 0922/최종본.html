@@ -1,0 +1,122 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘은 AI/ML 수업에서 <strong>어텐션 메커니즘</strong>, <strong>프롬프팅 기법</strong>, <strong>경사하강법과 과적합</strong>을 배웠다. 문제를 풀다가 헷갈렸던 부분이 몇 개 있어서, 마지막에 오답노트로 따로 모아 두었다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>Seq2Seq는 문장 전체를 <strong>고정 크기 벡터 하나</strong>에 압축하다 병목이 생기고, 어텐션은 이를 해결하려고 나왔다.</li>
+<li>어텐션은 <strong>Q·K 내적으로 점수를 구하고 → Softmax로 정규화</strong>한다.</li>
+<li>예시를 프롬프트에 넣고 <strong>가중치는 그대로</strong>면 Few-shot, 가중치를 바꾸면 파인튜닝이다.</li>
+<li>학습률이 너무 크면 <strong>오버슈팅</strong>이고, 과적합은 별개의 문제다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. Seq2Seq의 병목 현상</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0922/0922-Seq2Seq-%EB%B3%91%EB%AA%A9%EA%B3%BC-%EC%96%B4%ED%85%90%EC%85%98.png" alt="Seq2Seq의 병목 현상" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">Seq2Seq의 병목 현상</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">기존 Seq2Seq 모델은 입력 문장의 길이와 상관없이, 전체 문맥을 <strong>고정된 크기의 컨텍스트 벡터 하나</strong>에 압축해서 디코더로 전달한다. 문장이 길어지면 이 하나의 벡터에 방대한 정보를 억지로 눌러 담다가 <strong>문장 앞부분의 정보가 유실</strong>되는 구조적 한계가 있는데, 이를 <strong>병목 현상(Bottleneck)</strong> 이라 부른다.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">어텐션 메커니즘은 이 병목 현상을 해결하기 위해 등장했다. 인코더의 마지막 벡터 하나에만 의존하지 않고, <strong>인코더의 모든 시점(단어)의 벡터를 디코더가 필요할 때마다 다시 참고</strong>할 수 있게 만든 것이다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 어텐션 연산 2단계</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0922/0922-%EC%96%B4%ED%85%90%EC%85%98-%EC%97%B0%EC%82%B0-%EC%88%9C%EC%84%9C.png" alt="어텐션 연산 2단계" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">어텐션 연산 2단계</figcaption></figure>
+
+<ol style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>유사도 점수 계산</strong>: 디코더의 현재 상태 벡터(<strong>Q</strong>, Query)와 인코더의 각 단어 벡터(<strong>K</strong>, Key)를 내적(dot product)하여 유사도 점수(Score)를 구한다.</li>
+<li><strong>정규화</strong>: 이 점수에 <strong>소프트맥스(Softmax)</strong> 함수를 적용해 총합이 1이 되는 확률 분포(가중치)로 변환한다.</li>
+</ol>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code>Score = Q · K
+Attention Weight = softmax(Score)
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>왜 소프트맥스인가</strong>: 시그모이드, ReLU, tanh는 각각 이진 분류, 은닉층 활성화, 범위 압축 등 다른 목적의 활성화 함수이며, "여러 값의 총합을 1로 만드는 정규화" 역할은 하지 못한다. 소프트맥스만이 여러 유사도 점수를 "각 단어에 얼마나 집중할지"를 나타내는 확률 분포로 바꿔 준다.</li>
+<li>이렇게 구한 가중치를 인코더의 각 단어 벡터(<strong>V</strong>, Value)에 곱해서 더하면, 디코더가 현재 시점에 어떤 입력 단어에 더 집중해야 하는지를 반영한 벡터를 얻는다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. Few-shot과 프롬프팅 기법 비교</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0922/0922-%ED%94%84%EB%A1%AC%ED%94%84%ED%8C%85-%EA%B8%B0%EB%B2%95-%EB%B9%84%EA%B5%90.png" alt="Few-shot과 프롬프팅 기법 비교" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">Few-shot과 프롬프팅 기법 비교</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">고객 문의 메일을 특정 형식으로 분류시키고 싶을 때, 모델에게 원하는 패턴을 학습시키는 방법에는 비용과 방식이 다른 여러 옵션이 있다.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>Few-shot Prompting</strong>은 지시문과 함께 <strong>2개 이상의 입력-출력 예시 쌍</strong>을 프롬프트에 직접 포함시켜, 모델이 원하는 출력 패턴을 즉시 인지하도록 만드는 기법이다. 모델의 가중치를 바꾸지 않고, <strong>문맥 내 학습(In-Context Learning)</strong> 을 통해 그 자리에서 패턴을 파악하게 만든다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code>지시문: 아래 문의 메일을 [문의/불만/칭찬] 중 하나로 분류해줘.
+
+예시1) 입력: &quot;배송이 너무 늦어요&quot; → 출력: 불만
+예시2) 입력: &quot;환불은 어떻게 하나요?&quot; → 출력: 문의
+
+입력: &quot;상품 정말 만족스러워요!&quot; → 출력: ?
+</code></pre>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">기법</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">방식</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">비용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>Zero-shot</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">예시 없이 지시문만으로 바로 요청</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">가장 저렴</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>Few-shot</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">지시문 + 예시 2개 이상을 프롬프트에 포함</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">저렴, 즉시 적용</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>Fine-tuning (파인튜닝)</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">모델 가중치 자체를 재학습으로 변경</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">고비용, 시간 소요</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>Context Engineering</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">프롬프트를 넘어서 모델에게 주어지는 전체 정보 환경(문서, 도구, 대화 기록 등)을 설계</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">상황에 따라 다름</td>
+</tr>
+</tbody>
+</table>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>예시가 전혀 없으면 <strong>Zero-shot</strong>, 예시를 프롬프트에 넣으면 <strong>Few-shot</strong>이다. 둘 다 모델 가중치는 그대로다.</li>
+<li><strong>파인튜닝</strong>은 프롬프트 기법이 아니라 모델 자체를 바꾸는 것이라 훨씬 무겁고 비용이 크다.</li>
+<li><strong>컨텍스트 엔지니어링</strong>은 단순히 프롬프트 문장을 잘 쓰는 것을 넘어, 모델이 참고할 전체 정보(검색 결과, 도구 목록, 이전 대화 등)를 어떻게 구성하느냐의 문제라서 "예시 2개를 넣는 것"과는 층위가 다르다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 경사하강법과 학습률</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0922/0922-%ED%95%99%EC%8A%B5%EB%A5%A0%EA%B3%BC-%EC%98%A4%EB%B2%84%EC%8A%88%ED%8C%85.png" alt="경사하강법과 학습률" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">경사하강법과 학습률</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">경사하강법의 가중치 업데이트 공식은 다음과 같다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code>w_new = w_old - α · (∂J/∂w)
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">w</code> : 가중치</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">α</code> (알파) : <strong>학습률(learning rate)</strong>, 한 번에 얼마나 이동할지 정하는 보폭</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">∂J/∂w</code> : 손실 함수 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">J</code>를 가중치로 미분한 기울기(gradient)</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">학습률(보폭)을 지나치게 크게 설정하면, 최저점(최소 손실 지점)을 <strong>지나쳐 버리는 오버슈팅(Overshooting)</strong> 이 발생한다. 그 결과 오차가 줄어들지 않고 오히려 <strong>발산</strong>할 수 있다.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">반대로 학습률이 너무 작으면 다음과 같은 문제가 생긴다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>학습 속도가 지나치게 느려진다.</li>
+<li>로컬 미니멈(local minimum, 진짜 최저점이 아닌 곳)에 갇히기 쉽다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. 과적합과 Train / Valid / Test 분리</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0922/0922-%EA%B3%BC%EC%A0%81%ED%95%A9%EA%B3%BC-%EB%8D%B0%EC%9D%B4%ED%84%B0-%EB%B6%84%EB%A6%AC.png" alt="과적합과 Train / Valid / Test 분리" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">과적합과 Train / Valid / Test 분리</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>과적합(Overfitting)</strong> 은 모델이 훈련 데이터의 일반적인 패턴이 아니라 <strong>정답을 통째로 외워버려서</strong>, 한 번도 본 적 없는 새로운 데이터에서는 성능이 떨어지는 현상이다.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">방지하려면 전체 데이터를 Train(학습) / Valid(검증) / Test(최종 평가)로 나눈다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>Train</strong>: 모델이 실제로 학습에 사용하는 데이터</li>
+<li><strong>Valid(검증)</strong>: 학습 중간에 성능을 점검하며 과적합 여부를 판단하는 데이터 (모델이 직접 학습하지는 않음)</li>
+<li><strong>Test</strong>: 모든 학습이 끝난 뒤 최종 성능을 평가하는, 학습 과정에 전혀 사용되지 않은 데이터</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">이렇게 나눠야 "학습에 쓴 데이터에서만 잘하는지"와 "본 적 없는 데이터에서도 잘하는지"를 구분해서 확인할 수 있고, 과적합 여부를 제대로 판단할 수 있다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 오늘의 오답노트</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>병목 현상과 정보 유출</strong></p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>"정보 유출"이 아니라 <strong>"병목 현상(Bottleneck)"</strong> 이 정확한 용어다. 정보가 새어나가는(leak) 게 아니라, 압축 과정에서 소실(loss)되는 것이라는 뉘앙스 차이를 기억한다.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>어텐션 연산 순서</strong></p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>Q·K 내적 → 유사도 점수 → <strong>Softmax</strong> → 가중치, 이 순서를 헷갈리지 않는다. Softmax는 점수를 구한 <em>다음</em> 단계다.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>Few-shot과 파인튜닝</strong></p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>"예시를 프롬프트에 넣어서 패턴을 즉시 학습시킨다"는 설명을 보고 반사적으로 "파인튜닝"을 골랐는데, 파인튜닝은 <strong>모델 가중치를 바꾸는 것</strong>이라 예시 프롬프트와는 전혀 다른 접근이다. "즉시" + "가중치 변경 없음" 키워드가 나오면 Few-shot을 먼저 떠올린다.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>학습률과 과적합</strong></p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>학습률이 너무 크면 "과적합"이 생긴다고 착각하기 쉽다. 하지만 <strong>과적합은 학습률 문제가 아니라, 데이터 분할(train/valid/test)이 없거나 모델이 데이터를 암기할 만큼 충분히(또는 과도하게) 학습된 경우에 생기는 별개의 문제</strong>다. 학습률이 너무 크면 생기는 문제는 오버슈팅과 발산이다.</li>
+</ul>
+</div>

@@ -1,0 +1,395 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘은 파이썬 기초의 세 번째 묶음이다. 남이 만든 코드를 가져다 쓰는 모듈과 가상환경, 이름으로 값을 찾는 딕셔너리, 파일을 읽고 쓰는 방법, 그리고 오류가 났을 때 프로그램이 죽지 않게 다루는 예외 처리까지 정리한다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>모듈은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.py</code> 파일이고, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">import</code>로 가져온다. 외부 패키지는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">pip install</code>로 설치한다.</li>
+<li>가상환경은 프로젝트마다 독립된 패키지 환경이다. 활성화되면 터미널 앞에 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">(.venv)</code>가 뜬다.</li>
+<li>딕셔너리는 순서가 아니라 <strong>키(key)</strong> 로 값을 찾고, 없는 키는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">get()</code>이나 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">in</code>으로 안전하게 다룬다.</li>
+<li>파일은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">with open()</code>으로 열면 블록이 끝날 때 자동으로 닫힌다.</li>
+<li>예외는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">except</code>에 <strong>이름을 적어서</strong> 처리한다. 이름 없는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">except:</code>는 피한다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 모듈과 import</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0813/0813-import-%EC%84%B8-%EA%B0%80%EC%A7%80-%EB%B0%A9%EC%8B%9D.png" alt="모듈과 import" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">모듈과 import</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">모듈은 파이썬 코드를 담은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.py</code> 파일이다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">import</code>로 표준 라이브러리와 직접 만든 모듈을 불러올 수 있고, 관련 모듈을 패키지 폴더로 묶어 관리할 수 있다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">import math                    # math 모듈 전체를 math라는 이름으로 사용
+from math import sqrt          # math에서 sqrt만 가져와 바로 사용
+import statistics as stats     # statistics를 stats라는 별칭으로 사용
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">import module</code>: 모듈 전체를 가져와 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">모듈이름.함수이름()</code> 형태로 호출.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">from module import name</code>: 모듈 내부의 특정 함수/클래스만 선택해서 가져오며, 모듈 이름 없이 함수 이름만으로 호출 가능.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">import module as alias</code>: 별칭 부여.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">표준 라이브러리(별도 설치 없이 기본 제공)와 외부 패키지(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">pip install</code>로 설치)는 구분해야 한다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 가상환경과 패키지 설치</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">프로젝트마다 독립된 패키지 환경을 만들기 위해 가상환경을 사용한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-powershell">python -m venv .venv                              # .venv 가상환경 생성
+.venv\scripts\activate                            # 가상환경 활성화 (Windows)
+# venv/bin/activate                                # 가상환경 활성화 (Mac)
+
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned  # 최초 1회, 실행 권한 정책
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">터미널 앞에 초록색 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">(.venv)</code>가 뜨면 가상환경이 정상 활성화된 상태다.</p>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">패키지 설치와 requirements.txt</h3>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-powershell">python -m pip install --upgrade pip           # pip 최신화
+python -m pip install -r requirements.txt     # requirements.txt에 적힌 패키지 설치
+pip freeze &gt; requirements.txt                  # 현재 설치된 패키지를 기록
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">requirements.txt</code>로 필요한 패키지와 버전을 기록해 두면, 팀원 간 환경을 동일하게 맞출 수 있다. 버전이 다르면 오류가 날 수 있으므로 아래처럼 확인하는 습관이 필요하다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-powershell">python -c &quot;import sys; print(sys.executable)&quot;       # 실행 중인 파이썬 경로 확인
+python -c &quot;import pandas; print(pandas.__version__)&quot; # 라이브러리 버전 확인
+</code></pre>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">VS Code에서 인터프리터 선택</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Ctrl+Shift+P</code> → <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Python: Select Interpreter</code> → 프로젝트의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.venv</code> 선택. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.venv</code> 폴더가 여러 개 보일 수 있으므로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Scripts</code> 폴더 안의 정확한 경로를 선택해야 한다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. ModuleNotFoundError 점검 순서</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0813/0813-%EA%B0%80%EC%83%81%ED%99%98%EA%B2%BD-%EC%88%9C%EC%84%9C%EC%99%80-%EB%AA%A8%EB%93%88-%EC%98%A4%EB%A5%98-%EC%A0%90%EA%B2%80.png" alt="ModuleNotFoundError 점검 순서" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">ModuleNotFoundError 점검 순서</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">모듈을 못 찾는다는 오류가 나면 다음 순서로 확인한다.</p>
+<ol style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>파일 위치(경로)가 맞는지 확인</li>
+<li>현재 활성화된 파이썬 환경이 맞는지 확인 (베이스 환경으로 실행되고 있지는 않은지)</li>
+<li>해당 가상환경에 패키지가 실제로 설치되어 있는지 확인</li>
+</ol>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">가상환경이 없는데도 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">python 00_01.py</code>가 실행되는 경우, 사실은 시스템의 베이스(전역) 환경으로 실행된 것이다. 프로젝트별로 격리되지 않으므로 좋은 습관이 아니다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 딕셔너리: key와 value</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0813/0813-%EB%94%95%EC%85%94%EB%84%88%EB%A6%AC-%ED%82%A4-%EC%A1%B0%ED%9A%8C%EC%99%80-%ED%91%9C-%EA%B5%AC%EC%A1%B0.png" alt="딕셔너리: key와 value" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">딕셔너리: key와 value</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">딕셔너리는 중괄호와 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">키: 값</code> 형식으로 만든다. 리스트가 순서(인덱스)로 값을 찾는 것과 달리, 딕셔너리는 <strong>키(key)</strong> 로 값을 찾는다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">student = {&quot;name&quot;: &quot;민수&quot;, &quot;score&quot;: 85}
+print(student[&quot;name&quot;])   # 민수
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">key</code>는 데이터베이스의 <strong>PK(주키)</strong> 와 비슷한 역할로, 값을 식별하는 이름표다.</li>
+<li>key-value 구조를 쓰는 이유: 순서가 아니라 <strong>의미 있는 이름</strong>으로 값을 조회할 수 있어서다.</li>
+</ul>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">조회, 추가, 수정, 삭제</h3>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">student[&quot;age&quot;] = 20        # 새 키 추가
+student[&quot;score&quot;] = 90      # 기존 키 값 수정
+
+del student[&quot;age&quot;]         # 삭제
+student.pop(&quot;score&quot;)       # 삭제 (삭제된 값을 반환)
+</code></pre>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">안전하게 조회하기: get(), in</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">없는 키를 그냥 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">student["없는키"]</code>로 조회하면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">KeyError</code>가 발생한다. 안전하게 다루려면:</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">student.get(&quot;height&quot;, &quot;정보 없음&quot;)   # 키가 없으면 기본값 반환
+&quot;name&quot; in student                    # 키 존재 여부 확인 (bool)
+</code></pre>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">keys(), values(), items()</h3>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">for key in student.keys():
+    print(key)
+
+for value in student.values():
+    print(value)
+
+for key, value in student.items():
+    print(key, value)
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. 리스트와 딕셔너리 조합, 중첩 딕셔너리</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">여러 건의 데이터를 표현할 때는 <strong>리스트 안에 딕셔너리</strong>를 담는 구조를 가장 많이 쓴다. 엑셀 시트처럼 한 행 = 딕셔너리 하나로 보면 된다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">students = [
+    {&quot;name&quot;: &quot;민수&quot;, &quot;score&quot;: 85, &quot;attendance&quot;: 92},
+    {&quot;name&quot;: &quot;지영&quot;, &quot;score&quot;: 72, &quot;attendance&quot;: 95},
+    {&quot;name&quot;: &quot;현우&quot;, &quot;score&quot;: 91, &quot;attendance&quot;: 78},
+    {&quot;name&quot;: &quot;수빈&quot;, &quot;score&quot;: 88, &quot;attendance&quot;: 90},
+]
+
+selected_students = []
+for student in students:
+    name = student[&quot;name&quot;]
+    score = student[&quot;score&quot;]
+    attendance = student[&quot;attendance&quot;]
+    if score &gt;= 80 and attendance &gt;= 80:
+        selected_students.append(student)
+
+for student in selected_students:
+    print(
+        f&quot;{student['name']}: &quot;
+        f&quot;점수 {student['score']}점, &quot;
+        f&quot;출석률 {student['attendance']}%&quot;
+    )
+</code></pre>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">중첩 딕셔너리</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">바깥 키부터 한 단계씩 읽어 내려가면 헷갈리지 않는다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">member = {
+    &quot;id&quot;: 1,
+    &quot;profile&quot;: {&quot;email&quot;: &quot;test@example.com&quot;, &quot;unique&quot;: True},
+}
+print(member[&quot;profile&quot;][&quot;email&quot;])
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">email</code> 처럼 <strong>UNIQUE 제약</strong>이 필요한 값과, 학번처럼 <strong>UNIQUE 또는 NOT NULL</strong> 제약이 필요한 값을 구분해서 설계하는 감각은 이후 SQL 테이블 설계와도 이어진다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 파일 열기와 모드: with open()</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0813/0813-%ED%8C%8C%EC%9D%BC-%EC%97%B4%EA%B8%B0%EC%99%80-r-w-a-%EB%AA%A8%EB%93%9C.png" alt="파일 열기와 모드: with open()" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">파일 열기와 모드: with open()</figcaption></figure>
+
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">with open(&quot;memo.txt&quot;, &quot;r&quot;, encoding=&quot;utf-8&quot;) as file:
+    content = file.read()
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">"memo.txt"</code> → 파일 이름</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">"r"</code> → 읽기 모드</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">encoding="utf-8"</code> → 문자 인코딩</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">with</code>를 쓰면 블록이 끝날 때 파일이 자동으로 닫히므로 안전하다.</p>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">모드: r / w / a</h3>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">모드</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">r</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">읽기</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">w</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">쓰기 (기존 내용을 덮어씀)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">a</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">추가 (append, 기존 내용 뒤에 이어 씀)</td>
+</tr>
+</tbody>
+</table>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">with open(&quot;result.txt&quot;, &quot;w&quot;, encoding=&quot;utf-8&quot;) as file:
+    file.write(&quot;파이썬 파일 쓰기 실습\n&quot;)
+    file.write(&quot;두 번째 줄입니다.\n&quot;)
+
+with open(&quot;result.txt&quot;, &quot;a&quot;, encoding=&quot;utf-8&quot;) as file:
+    file.write(&quot;새로운 내용을 추가합니다.\n&quot;)
+</code></pre>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">read(), readline(), 파일 반복</h3>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python"># 전체 내용
+with open(&quot;memo.txt&quot;, &quot;r&quot;, encoding=&quot;utf-8&quot;) as file:
+    content = file.read()
+
+# 한 줄만
+with open(&quot;memo.txt&quot;, &quot;r&quot;, encoding=&quot;utf-8&quot;) as file:
+    first_line = file.readline()
+
+# 한 줄씩 반복 처리
+with open(&quot;memo.txt&quot;, &quot;r&quot;, encoding=&quot;utf-8&quot;) as file:
+    for line in file:
+        print(line.strip())  # 줄 끝의 \n 제거
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">7. 경로 다루기와 CSV 파일</h2>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">경로 다루기: pathlib.Path</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">사람마다 파일을 저장해 두는 위치가 다르기 때문에, 실행 파일 기준으로 경로를 계산하는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">BASE_DIR</code> 패턴을 사용한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+file_path = BASE_DIR / &quot;data&quot; / &quot;chapter16&quot; / &quot;memo.txt&quot;
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">BASE_DIR</code>처럼 변수 이름을 대문자로 쓰는 것은 <strong>상수처럼 취급</strong>하겠다는 관례적 표시다.</li>
+<li>파일이 없어도 코드는 작성할 수 있으며, 실행 시점에 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">FileNotFoundError</code>로 확인하면 된다.</li>
+</ul>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">file_path = Path(&quot;message.txt&quot;)
+try:
+    with open(file_path, &quot;r&quot;, encoding=&quot;utf-8&quot;) as file:
+        print(file.read())
+except FileNotFoundError:
+    print(&quot;파일을 찾을 수 없습니다. 경로를 확인해 주세요.&quot;)
+</code></pre>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">CSV 파일</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">CSV는 쉼표로 구분된 텍스트 파일이다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">csv.reader</code>는 각 행을 리스트로, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">csv.DictReader</code>는 각 행을 딕셔너리(헤더를 key로)로 돌려준다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">import csv
+
+with open(&quot;data.csv&quot;, &quot;r&quot;, encoding=&quot;utf-8&quot;) as file:
+    reader = csv.DictReader(file)
+    for row in reader:
+        price = float(row[&quot;price&quot;])  # CSV에서 읽은 값은 문자열이므로 형변환 필요
+
+with open(&quot;output.csv&quot;, &quot;w&quot;, encoding=&quot;utf-8&quot;, newline=&quot;&quot;) as file:
+    writer = csv.writer(file)
+    writer.writerow([&quot;name&quot;, &quot;score&quot;])
+</code></pre>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">CSV를 떠올리면 자연스럽게 <strong>pandas의 DataFrame</strong>을 떠올려야 한다. 표 형태 데이터를 다룰 때는 pandas가 훨씬 편리하다.</p>
+</blockquote>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">자주 만나는 예외</h3>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">FileNotFoundError</code>: 파일 이름·경로 확인</li>
+<li>인코딩 문제: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">encoding="utf-8"</code> 명시로 대부분 해결</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">KeyError</code>: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">DictReader</code>에서 없는 컬럼명 접근</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">ValueError</code>: 문자열을 숫자로 변환할 수 없을 때 (<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">int()</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">float()</code>)</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">8. 오류의 세 종류와 try - except - else - finally</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0813/0813-try-except-else-finally-%ED%9D%90%EB%A6%84.png" alt="오류의 세 종류와 try - except - else - finally" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">오류의 세 종류와 try - except - else - finally</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오류는 크게 세 종류로 나눈다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>문법 오류(SyntaxError)</strong>: 코드를 실행하기도 전에 걸러짐</li>
+<li><strong>실행 중 예외(Exception)</strong>: 실행되다가 특정 조건에서 발생</li>
+<li><strong>논리 오류</strong>: 오류는 안 나지만 결과가 잘못됨 (가장 찾기 어려움)</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">트레이스백(Traceback)의 <strong>마지막 줄</strong>에서 예외 이름과 설명을 먼저 확인하고, 파일명과 줄 번호를 따라 실제 오류 위치를 찾아간다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">try:
+    number = int(input(&quot;정수: &quot;))
+except ValueError:
+    print(&quot;정수가 아닙니다.&quot;)
+else:
+    print(f&quot;입력 성공: {number}&quot;)   # try에서 예외가 없었을 때만 실행
+finally:
+    print(&quot;입력 처리를 마쳤습니다.&quot;)  # 성공/실패 관계없이 항상 실행
+</code></pre>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">키워드</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">실행 조건</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">try</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">예외가 발생할 수 있는 코드를 시도</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">except</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">지정한 예외가 발생했을 때 대응</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">else</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">try</code>에서 예외가 없었을 때 실행</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">finally</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">성공/실패와 관계없이 마지막에 항상 실행</td>
+</tr>
+</tbody>
+</table>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">9. 대표 예외 5가지와 올바른 입력 받기</h2>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">예외</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">대표 상황</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">먼저 확인할 것</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">ValueError</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">int("abc")</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">값의 형식</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">ZeroDivisionError</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">10 / 0</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">나누는 값</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">FileNotFoundError</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">없는 파일 열기</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">파일 이름·경로</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">KeyError</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">없는 딕셔너리 키</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">키 이름·존재 여부</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">IndexError</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">범위를 벗어난 인덱스</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">리스트 길이·인덱스</td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">while + try로 올바른 입력을 받을 때까지 반복</h3>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">while True:  # break 조건이 없으면 무한히 돈다
+    try:
+        score = int(input(&quot;점수(0~100): &quot;))
+    except ValueError:
+        print(&quot;숫자로 입력해 주세요.&quot;)
+        continue
+
+    if 0 &lt;= score &lt;= 100:
+        break
+    print(&quot;0부터 100 사이의 값을 입력해 주세요.&quot;)
+
+print(f&quot;입력된 점수: {score}&quot;)
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">10. 피해야 할 형태: 이름 없는 except</h2>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python"># 나쁜 예
+try:
+    result = 100 / number
+except:
+    print(&quot;오류&quot;)
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">문제점:</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>어떤 오류가 발생했는지 알 수 없다.</li>
+<li>예상하지 못한 개발 버그까지 조용히 숨겨버린다.</li>
+<li>디버깅할 정보가 줄어든다.</li>
+</ul>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python"># 좋은 예
+try:
+    result = 100 / number
+except ZeroDivisionError:
+    print(&quot;0으로 나눌 수 없습니다.&quot;)
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">11. 계산기 예제로 보는 예외 테스트</h2>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">def calculate(a, b, operator):
+    if operator == &quot;+&quot;:
+        return a + b
+    elif operator == &quot;-&quot;:
+        return a - b
+    elif operator == &quot;*&quot;:
+        return a * b
+    elif operator == &quot;/&quot;:
+        return a / b
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">이 함수를 테스트할 때는 <strong>정상 입력만으로는 예외 처리 품질을 확인할 수 없다.</strong> 아래처럼 경계값과 비정상 입력을 같이 테스트해야 한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code>10, 2, /    → 정상 계산
+10, 0, /    → ZeroDivisionError
+abc, 2, +   → ValueError
+10, 2, %    → 지원하지 않는 연산자
+</code></pre>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">예외 처리와 "값의 범위를 검증하는 것"은 서로 다른 문제다. 예외 처리는 프로그램이 죽지 않게 막는 것이고, 범위 검증은 값 자체가 요구사항에 맞는지 확인하는 것이다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">정리와 복습</h2>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">주제</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">기억할 것</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">import</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">import</code> / <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">from ... import</code> / <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">import ... as</code> 세 가지 방식</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">가상환경</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">python -m venv .venv</code> → activate → <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">(.venv)</code> 표시 확인</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">requirements.txt</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">pip install -r</code>로 설치, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">pip freeze &gt;</code>로 기록</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">딕셔너리</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">키로 조회, 없는 키는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">get()</code> / <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">in</code>, 표 데이터는 리스트 안에 딕셔너리</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">파일</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">with open(...)</code>, 모드 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">r</code> / <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">w</code> / <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">a</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">encoding="utf-8"</code> 명시</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">CSV</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">DictReader</code>로 읽으면 행이 딕셔너리, 값은 문자열이라 형변환 필요</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">예외</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">try</code> / <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">except</code> / <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">else</code> / <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">finally</code>, 이름 없는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">except:</code> 금지</td>
+</tr>
+</tbody>
+</table>
+</div>

@@ -1,0 +1,133 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘은 SQL <strong>서브쿼리(Subquery)</strong> 를 정리했다. 서브쿼리가 어디에 놓이느냐(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">WHERE</code>절, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">FROM</code>절, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">SELECT</code>절)에 따라 이름과 규칙이 달라져서, 위치별로 나눠 두고 헷갈렸던 부분을 오답노트로 남겨 둔다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>서브쿼리는 <strong>괄호 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">()</code> 로 감싼 또 하나의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">SELECT</code></strong> 이고, <strong>외부 쿼리보다 먼저 실행</strong>된다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">WHERE</code>절에서 서브쿼리가 <strong>여러 행</strong>을 돌려주면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">=</code> 대신 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">IN</code></strong> 을 쓴다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NOT IN</code>은 결과에 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NULL</code>이 섞이면 조용히 빈 결과를 낼 수 있어서 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NOT EXISTS</code></strong> 를 권장한다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">FROM</code>절의 서브쿼리는 <strong>인라인 뷰</strong>(별칭 필수), <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">SELECT</code>절의 서브쿼리는 <strong>스칼라 서브쿼리</strong>(값 하나만 반환)다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 서브쿼리란</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0923/0923-%EC%84%9C%EB%B8%8C%EC%BF%BC%EB%A6%AC-%EC%8B%A4%ED%96%89-%EC%88%9C%EC%84%9C.png" alt="서브쿼리란" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">서브쿼리란</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">하나의 SQL 쿼리 안에 포함된 또 다른 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">SELECT</code> 쿼리다. 괄호 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">()</code> 로 감싸며(중괄호가 아니다), <strong>외부 쿼리보다 먼저 실행되어</strong> 그 결과를 외부 쿼리에 전달한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-sql">SELECT name
+FROM members
+WHERE member_id IN (
+    SELECT member_id FROM loans WHERE returned = false  -- 서브쿼리
+);
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">JOIN</code>은 테이블을 합치는 것이고, 서브쿼리와는 다른 개념이다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. WHERE절에서 여러 행을 반환할 때: = 대신 IN</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0923/0923-IN%EA%B3%BC-%EB%93%B1%ED%98%B8-%EB%B9%84%EA%B5%90.png" alt="WHERE절에서 여러 행을 반환할 때: = 대신 IN" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">WHERE절에서 여러 행을 반환할 때: = 대신 IN</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">서브쿼리가 <strong>여러 행(값)</strong> 을 반환하면 단일 값 비교 연산자인 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">=</code>을 쓸 수 없다. 목록 중 <strong>하나라도 일치</strong>하면 참이 되는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">IN</code>을 사용한다. 반대로 목록에 포함되지 않는 경우는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NOT IN</code>을 사용한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-sql">-- 서브쿼리가 여러 행을 반환하면 에러
+WHERE member_id = (SELECT member_id FROM loans WHERE ...)
+
+-- 올바른 방식
+WHERE member_id IN (SELECT member_id FROM loans WHERE ...)
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. NOT IN보다 NOT EXISTS를 권장하는 이유: NULL 함정</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0923/0923-NOT-IN-NULL-%ED%95%A8%EC%A0%95.png" alt="NOT IN보다 NOT EXISTS를 권장하는 이유: NULL 함정" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">NOT IN보다 NOT EXISTS를 권장하는 이유: NULL 함정</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">서브쿼리 결과에 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NULL</code>이 하나라도 포함되면, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NOT IN</code>은 <strong>전체 결과가 빈 값으로</strong> 나올 수 있다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NOT EXISTS</code>는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NULL</code>에 영향을 받지 않기 때문에 더 안전하다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-sql">-- NULL이 섞여 있으면 예상과 다르게 빈 결과가 나올 위험
+WHERE member_id NOT IN (SELECT member_id FROM loans)
+
+-- 더 안전한 방식
+WHERE NOT EXISTS (
+    SELECT 1 FROM loans WHERE loans.member_id = members.member_id
+)
+</code></pre>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NOT IN</code>이 문법 오류를 내는 것은 아니다. 조용히 <strong>의도와 다른(잘못된) 결과</strong>를 내는 것이 더 위험한 지점이다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NOT EXISTS</code>는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">WHERE</code>절에서 사용하며 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">FROM</code>절 전용은 아니다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. FROM절의 서브쿼리: 인라인 뷰</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">FROM</code>절에 위치해서 마치 하나의 임시 테이블처럼 사용되는 서브쿼리를 <strong>인라인 뷰(Inline View)</strong> 라고 부른다. 데이터베이스에 저장되지 않는 일회성 임시 테이블처럼 동작하며, <strong>반드시 별칭(alias)을 붙여야 한다.</strong></p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-sql">SELECT category, avg_price
+FROM (
+    SELECT category, AVG(price) AS avg_price
+    FROM products
+    GROUP BY category
+) AS category_summary   -- 별칭 필수
+WHERE avg_price &gt; 10000;
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. SELECT절의 서브쿼리: 스칼라 서브쿼리</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">SELECT</code>절에 위치하는 서브쿼리로, <strong>반드시 하나의 행, 하나의 열(단일 값)만 반환해야 한다.</strong> 여러 행을 반환하면 "첫 번째 행만 자동으로 사용"되는 것이 아니라 <strong>PostgreSQL에서 오류가 발생</strong>한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-sql">SELECT
+    name,
+    (SELECT COUNT(*) FROM loans WHERE loans.member_id = members.member_id) AS loan_count
+FROM members;
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">이렇게 외부 쿼리의 각 행마다 값이 달라지도록, 외부 테이블의 컬럼을 참조하는 서브쿼리를 <strong>상관 서브쿼리(Correlated Subquery)</strong> 라고 한다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 오답노트: 헷갈리기 쉬운 지점 정리</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">원본 노트에서 바로잡아 둔 내용을 한 번에 모아 둔다. 시험에서 함정이 되기 쉬운 문장들이다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">헷갈리기 쉬운 생각</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">바로잡은 내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">서브쿼리는 중괄호 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">{}</code> 로 감싼다</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>괄호 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">()</code></strong> 로 감싼다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">JOIN</code>도 서브쿼리의 한 종류다</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">JOIN</code>은 테이블을 합치는 것으로, 서브쿼리와 <strong>다른 개념</strong>이다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">여러 행을 반환해도 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">=</code> 로 비교할 수 있다</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">여러 행이면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">=</code> 은 에러. <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">IN</code></strong> 을 쓴다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NOT IN</code>은 문법 오류를 낸다</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">문법 오류가 아니라 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NULL</code>이 섞이면 <strong>조용히 잘못된(빈) 결과</strong>를 낸다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NOT EXISTS</code>는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">FROM</code>절 전용이다</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">WHERE</code>절</strong>에서 사용한다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">스칼라 서브쿼리가 여러 행을 반환하면 첫 번째 행만 쓴다</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">자동으로 첫 행을 쓰지 않고 <strong>PostgreSQL에서 오류</strong>가 발생한다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">인라인 뷰는 별칭 없이도 된다</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>별칭(alias)이 필수</strong>다</td>
+</tr>
+</tbody>
+</table>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 핵심 정리</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0923/0923-%EC%9C%84%EC%B9%98%EB%B3%84-%EC%84%9C%EB%B8%8C%EC%BF%BC%EB%A6%AC-%EC%9D%B4%EB%A6%84.png" alt="오늘의 핵심 정리" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">오늘의 핵심 정리</figcaption></figure>
+
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">위치</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">이름</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">핵심 규칙</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">WHERE</code>절</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">(일반 서브쿼리)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">여러 행이면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">IN</code> / <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NOT IN</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NULL</code>이 걱정되면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">NOT EXISTS</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">FROM</code>절</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">인라인 뷰</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">임시 테이블처럼 사용, <strong>별칭 필수</strong></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">SELECT</code>절</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">스칼라 서브쿼리</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>하나의 행, 하나의 열</strong>만 반환</td>
+</tr>
+</tbody>
+</table>
+</div>

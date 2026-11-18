@@ -1,0 +1,136 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘은 NAVER 검색 트렌드와 한국관광공사 지역별 관광 강도 데이터를 수집하고 검증한 뒤, 보고서를 만드는 과정을 로컬 Python 파이프라인으로 실행해 봤다. 자동화 자체보다 "자동화하기 전에 무엇을 확인해야 하는가"가 더 중요하다는 것을 배운 날이다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>자동화는 <strong>API 수집 → 데이터 검증·분석 → LLM 요약 → PDF 생성</strong>을 정해진 순서로 실행하는 것이다.</li>
+<li>HTTP 요청이 성공했다고 데이터가 올바른 것은 아니다. <strong>검증된 작업만</strong> 파이프라인으로 묶는다.</li>
+<li>한 단계가 실패하면 뒤 단계를 실행하지 않는 <strong>Fail Fast</strong> 방식으로 동작한다.</li>
+<li>로컬 자동화(Python)와 Make 온라인 자동화는 <strong>서로 독립</strong>이다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 자동화 전에 단계별 검증이 필요하다</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1015/1015-%ED%8C%8C%EC%9D%B4%ED%94%84%EB%9D%BC%EC%9D%B8-4%EB%8B%A8%EA%B3%84%EC%99%80-%EA%B2%80%EC%A6%9D-%ED%95%AD%EB%AA%A9.png" alt="자동화 전에 단계별 검증이 필요하다" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">자동화 전에 단계별 검증이 필요하다</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">자동화는 아래 작업을 정해진 순서로 실행한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-text">API 수집 → 데이터 검증·분석 → LLM 요약 → PDF 생성
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">HTTP 요청이 성공해도 데이터가 올바르다는 뜻은 아니다. 아래 항목을 확인해야 한다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>응답 코드</li>
+<li>실제 데이터 존재 여부</li>
+<li>필드</li>
+<li>기준 기간</li>
+<li>숫자 변환</li>
+<li>중복</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">이렇게 사람이 확인한 작업만 파이프라인으로 묶는다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 사용한 데이터와 해석 범위</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1015/1015-%EB%8D%B0%EC%9D%B4%ED%84%B0-%EC%A2%85%EB%A5%98%EC%99%80-%ED%95%B4%EC%84%9D-%EB%B2%94%EC%9C%84.png" alt="사용한 데이터와 해석 범위" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">사용한 데이터와 해석 범위</figcaption></figure>
+
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>NAVER Search Trend:</strong> 여행·축제·캠핑·맛집의 월별 상대 검색 관심도다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">ratio</code>는 실제 검색 건수가 아니라 조회 조건에서 정규화된 <strong>상대 지수</strong>다.</li>
+<li><strong>관광 강도 API:</strong> 서울(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">areaCd=11</code>), 2025년 9월(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">baseYm=202509</code>) 기준 체류 강도와 소비 강도다. 전체 지역 코드(체류 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">21</code>, 소비 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">22</code>)를 요청해 서울 합계와 구별 자료를 받았다.</li>
+<li>관광 자료는 체류 26행, 소비 26행으로 총 52행이 처리되었다. 이 지표를 실제 방문객 수나 원화 소비액으로 해석하면 안 된다.</li>
+<li>NAVER와 관광 자료는 분석 단위와 범위가 다르므로 기본 실습에서는 행 단위로 병합하지 않았다. 각각 분석해서 한 보고서에서 함께 설명한다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. 실패를 상태 그대로 기록하고 복구한다</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1015/1015-%EC%8B%A4%ED%8C%A8-%EB%B3%B5%EA%B5%AC%EC%99%80-Fail-Fast.png" alt="실패를 상태 그대로 기록하고 복구한다" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">실패를 상태 그대로 기록하고 복구한다</figcaption></figure>
+
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>관광 소비 API에서 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">ConnectTimeout</code>이 발생했을 때 파이프라인은 해당 단계에서 멈췄다. 실패한 소비 자료를 성공한 것처럼 처리하지 않았다.</li>
+<li>이후 노트북에서 관광 수집 스크립트를 다시 실행했고, 체류·소비 각각 26행을 받아 처리 CSV를 만들었다.</li>
+<li>Gemini의 일시적인 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">503 UNAVAILABLE</code>은 서비스 혼잡 오류였다. 이후 파이프라인 성공 로그를 확인했다.</li>
+<li>파이프라인의 <strong>Fail Fast</strong> 동작: 한 단계가 실패하면 그 뒤 분석, 요약, PDF 단계는 실행하지 않는다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 실행 방법과 결과 파일</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1015/1015-%EC%8B%A4%ED%96%89-%EB%8B%A8%EA%B3%84%EC%99%80-%EA%B2%B0%EA%B3%BC%EB%AC%BC.png" alt="실행 방법과 결과 파일" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">실행 방법과 결과 파일</figcaption></figure>
+
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">개별 수집 재시도: VS Code 노트북</h3>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">import runpy
+
+runpy.run_path(
+    str(PROJECT_DIR / &quot;src&quot; / &quot;collect_tourism.py&quot;),
+    run_name=&quot;__main__&quot;,
+)
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">runpy.run_path()</code>는 실행한 모듈의 네임스페이스도 반환하므로, 노트북 셀 마지막 줄에 그대로 쓰면 함수와 변수 정보가 길게 표시될 수 있다. 필요하면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">result = runpy.run_path(...)</code>처럼 변수에 담는다.</p>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">전체 로컬 파이프라인</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">프로젝트 폴더에서 아래 명령으로 실행한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-powershell">python run_pipeline.py
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">Windows 배치 파일 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">run_pipeline.bat</code>은 같은 파이프라인을 실행하는 간편 실행기다. 가상환경이 프로젝트 폴더의 상위 폴더에 있어서, Python 경로는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">..\.venv\Scripts\python.exe</code>를 사용한다.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">파이프라인 단계는 다음과 같다.</p>
+<ol style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">src/collect_naver.py</code></li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">src/collect_tourism.py</code></li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">src/analyze.py</code></li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">src/generate_llm_report.py</code></li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">src/generate_pdf.py</code></li>
+</ol>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">주요 결과물은 다음과 같다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">구분</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">위치</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">원본 응답</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">data/raw/</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">처리 데이터</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">data/processed/naver_trend.csv</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">data/processed/tourism_strength.csv</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">분석 결과</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">reports/analysis_summary.csv</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">그래프</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">reports/naver_trend.png</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">reports/tourism_strength_top10.png</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">LLM 요약</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">reports/llm_summary.md</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">PDF</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">reports/tourism_trend_report_YYYY-MM-DD.pdf</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">실행 로그</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">logs/pipeline_YYYYMMDD.log</code></td>
+</tr>
+</tbody>
+</table>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">API 키는 코드나 GitHub에 직접 적지 않고 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.env</code>에 보관한다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.env</code>와 원본 데이터, 로그는 Git에 올리지 않도록 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.gitignore</code>를 확인한다. 키의 실제 값은 터미널, 노트북 출력, 보고서에 노출하지 않는다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. 자동화 방식은 두 가지이며 서로 독립이다</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1015/1015-%EB%A1%9C%EC%BB%AC-%EC%9E%90%EB%8F%99%ED%99%94%EC%99%80-Make-%EB%B9%84%EA%B5%90.png" alt="자동화 방식은 두 가지이며 서로 독립이다" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">자동화 방식은 두 가지이며 서로 독립이다</figcaption></figure>
+
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">PART 1: 로컬 자동화</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">내 PC에서 Python 파이프라인을 실행해 PDF를 만든다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">run_pipeline.bat</code>은 Windows 작업 스케줄러가 호출할 수 있는 실행 파일이다. 작업 스케줄러 등록 마법사를 열어 작업 이름을 입력하는 단계까지 진행했지만, <strong>등록 완료와 예약 실행 검증은 아직 확인하지 못했다.</strong></p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">작업 스케줄러에 등록할 때의 핵심 값은 세 가지다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>프로그램: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">C:\Windows\System32\cmd.exe</code></li>
+<li>인수: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/c "&lt;run_pipeline.bat의 전체 경로&gt;"</code></li>
+<li>시작 위치: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">run_pipeline.bat</code>이 있는 프로젝트 폴더</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">예약 실행 전에 수동 실행이 성공하는지, 로그의 마지막이 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">PIPELINE SUCCESS</code>인지, PDF가 실제로 열리는지 확인한다. 매 실행마다 외부 API와 LLM을 다시 호출하므로 불필요하게 자주 예약하지 않는다.</p>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">PART 2: Make 온라인 자동화 (아직 별도 실습)</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">Make는 로컬 Python, PDF, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">reports</code> 폴더를 사용하지 않는다. Make 안에서 Scheduler → HTTP API → 간단한 데이터 처리 → LLM → Gmail 순으로 별도 Scenario를 만든다. 먼저 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Run once</code>로 각 모듈의 입력과 출력을 확인하고, Gmail 테스트 메일을 받은 다음에만 정기 예약을 활성화한다. Gmail 연결과 Make Scenario는 오늘 아직 완료하지 않았다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 다음에 할 일</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>[ ] 작업 스케줄러 마법사에서 트리거와 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">cmd.exe</code> 작업 경로를 입력해 등록</li>
+<li>[ ] 등록한 작업을 수동 실행해 로그와 PDF 확인</li>
+<li>[ ] <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">llm_summary.md</code> 내용을 검토하고 PDF에서 한글, 그래프, 본문 확인</li>
+<li>[ ] 로컬 PART 1 체크리스트를 마친 뒤 Make PART 2 Scenario 시작</li>
+<li>[ ] Make에서 API 입력과 출력을 단계별로 확인한 뒤 Gmail 테스트 발송</li>
+<li>[ ] 테스트 수신과 데이터 검증을 모두 확인한 후 적절한 예약 주기 설정</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 핵심 정리</h2>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">API 호출 성공은 분석 성공과 다르다. 자동화는 검증된 절차를 반복할 뿐이므로, 먼저 사람이 데이터를 확인하고 실패 원인을 구분해야 한다.</p>
+</blockquote>
+</div>

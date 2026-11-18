@@ -1,0 +1,87 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">프로젝트 기간이라 일일 기록 대신 프로젝트 내용을 정리했다. 이번 글은 Django 프로젝트를 처음부터 세팅하고, PostgreSQL 데이터베이스를 연결하기까지의 과정이다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>가상환경 생성 → 패키지 설치 → <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">startproject</code> / <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">startapp</code></strong> 순서로 프로젝트 뼈대를 만든다.</li>
+<li>새 앱은 만들자마자 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">INSTALLED_APPS</code>에 등록</strong>해야 Django가 인식한다.</li>
+<li>DB 접속 정보는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">settings.py</code>에 직접 쓰지 않고 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.env</code>로 분리</strong>하며, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">search_path</code>로 사용할 스키마를 지정한다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 프로젝트 초기 세팅</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/project-django/%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B82-Django-%EC%B4%88%EA%B8%B0%EC%84%B8%ED%8C%85-%EC%88%9C%EC%84%9C.png" alt="프로젝트 초기 세팅" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">프로젝트 초기 세팅</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">프로젝트 폴더를 만들고, VS Code를 연 뒤, 가상환경을 만들어 활성화하고 필요한 패키지를 설치했다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-bash">mkdir C:\dev\django_members
+cd C:\dev\django_members
+code .
+
+python -m venv .venv                 # 오류가 나면 한 번 더 실행
+.\.venv\Scripts\Activate.ps1          # 가상환경 활성화
+
+pip install django &quot;psycopg[binary]&quot; python-dotenv
+python -m pip install --upgrade pip
+pip list
+pip freeze &gt; requirements.txt
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">django</code> : 웹 프레임워크 본체</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">psycopg[binary]</code> : Python에서 PostgreSQL에 접속하기 위한 드라이버</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">python-dotenv</code> : <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.env</code> 파일의 값을 불러오는 도구</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">pip freeze &gt; requirements.txt</code> : 설치된 패키지 목록을 파일로 저장한다.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.venv</code>를 만든 뒤 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Scripts</code> 폴더 안에 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">pip.exe</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">python.exe</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Activate</code>/<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Deactivate</code> 스크립트가 있는지 확인하면 정상 생성된 것이다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 프로젝트와 앱 생성</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/project-django/%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B82-%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8%EC%99%80-%EC%95%B1-%EA%B5%AC%EC%A1%B0.png" alt="프로젝트와 앱 생성" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">프로젝트와 앱 생성</figcaption></figure>
+
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-bash">django-admin startproject config      # settings.py와 urls.py가 들어있는 핵심 폴더
+python manage.py startapp members     # members 앱 생성
+python manage.py runserver
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">startproject config</code> : <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">settings.py</code>와 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">urls.py</code>가 들어 있는 핵심 설정 폴더(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">config</code>)를 만든다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">startapp members</code> : 기능 단위인 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">members</code> 앱을 만든다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">runserver</code> : 개발 서버를 실행한다.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">새로 만든 앱은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">settings.py</code>의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">INSTALLED_APPS</code> 리스트 <strong>맨 끝에</strong> 앱 이름(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">"members"</code>)을 추가해 줘야 Django가 인식한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">INSTALLED_APPS = [
+    # ... 기존 항목들 ...
+    &quot;members&quot;,   # 새 앱은 리스트 맨 끝에 추가
+]
+</code></pre>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">위 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">INSTALLED_APPS</code> 코드는 이해를 돕기 위한 예시다. 기존 항목은 생략했다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. PostgreSQL 연동과 스키마 지정</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/project-django/%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B82-PostgreSQL-%EC%97%B0%EB%8F%99-%EA%B5%AC%EC%A1%B0.png" alt="PostgreSQL 연동과 스키마 지정" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">PostgreSQL 연동과 스키마 지정</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">settings.py</code>의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">DATABASES</code>에 PostgreSQL 접속 정보를 적는다. 실제 값은 모두 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">...</code>로 가려 두었다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">DATABASES = {
+    &quot;default&quot;: {
+        &quot;ENGINE&quot;: &quot;django.db.backends.postgresql&quot;,
+        &quot;NAME&quot;: &quot;...&quot;,
+        &quot;USER&quot;: &quot;...&quot;,
+        &quot;PASSWORD&quot;: &quot;...&quot;,   # .env로 관리, 절대 커밋하지 않는다
+        &quot;HOST&quot;: &quot;...&quot;,
+        &quot;PORT&quot;: &quot;...&quot;,
+        &quot;OPTIONS&quot;: {
+            &quot;options&quot;: &quot;-c search_path=practice&quot;,  # practice 스키마를 우선 검색
+        },
+    }
+}
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">OPTIONS</code>의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">search_path</code>를 지정하면, 여러 스키마 중 원하는 스키마(예: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">practice</code>)를 <strong>우선적으로 검색</strong>하도록 만들 수 있다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 환경변수(.env)로 비밀정보 관리</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/project-django/%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B82-env%EB%A1%9C-%EB%B9%84%EB%B0%80%EC%A0%95%EB%B3%B4-%EB%B6%84%EB%A6%AC.png" alt="환경변수(.env)로 비밀정보 관리" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">환경변수(.env)로 비밀정보 관리</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">DB 비밀번호나 API 키 같은 민감한 정보는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">settings.py</code>에 직접 쓰지 않는다.</p>
+<ol style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>민감한 값은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.env</code> 파일에 따로 적는다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">settings.py</code>에서 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">python-dotenv</code>로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.env</code>를 불러온다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.env</code>는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.gitignore</code>에 등록해서 <strong>절대 커밋되지 않도록</strong> 한다.</li>
+<li>팀원들과는 값이 비어 있는 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.env.example</code>만 공유</strong>한다.</li>
+</ol>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. 실습에서 겪은 점</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">startapp</code>으로 앱을 만든 뒤 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">settings.py</code>에 앱을 등록하는 걸 깜빡하면, 모델과 뷰가 인식되지 않아서 헤맬 수 있다. 새 앱을 만들 때마다 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">INSTALLED_APPS</code> 등록을 세트로 기억한다.</li>
+<li>DB 연동 오류가 나면 가장 먼저 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.env</code> 값, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">OPTIONS</code>의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">search_path</code>, 그리고 PostgreSQL 서버가 실제로 떠 있는지부터 확인한다.</li>
+</ul>
+</div>

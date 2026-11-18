@@ -1,0 +1,146 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘은 두 가지를 정리했다. 하나는 머신러닝의 기본인 <strong>선형 회귀 공식과 손실 함수(MSE, MAE)</strong> 이고, 다른 하나는 AI를 업무에 쓰는 요령인 <strong>툴 스택과 데블스 애드버킷</strong>이다. 공식이 낯설어서 일상적인 계산식에 대입해 보며 이해했고, 처음에 틀렸던 부분은 마지막에 오답노트로 남겼다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>선형 회귀의 예측 공식은 <strong>ŷ = wx + b</strong> 이고, 학습의 목표는 데이터에 가장 잘 맞는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">w</code>와 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">b</code>를 찾는 것이다.</li>
+<li><strong>손실값은 낮을수록 좋다.</strong> 정확도(높을수록 좋음)와 방향이 반대다.</li>
+<li>경사하강법에는 모든 구간에서 미분이 가능한 <strong>MSE</strong>가 MAE보다 안정적이다.</li>
+<li><strong>툴 스택</strong>은 여러 AI 도구를 역할 나눠 조합하는 전략, <strong>데블스 애드버킷</strong>은 AI에게 엄격한 비판자 역할을 맡기는 기법이다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 선형 회귀 예측 공식: ŷ = wx + b</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0929/0929-%EB%9D%BC%EB%A9%B4%EB%B0%B0%EB%8B%AC%EA%B3%BC-%EC%84%A0%ED%98%95%ED%9A%8C%EA%B7%80-%EA%B3%B5%EC%8B%9D.png" alt="선형 회귀 예측 공식: ŷ = wx + b" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">선형 회귀 예측 공식: ŷ = wx + b</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>비유: 라면 배달 요금 계산기.</strong> 라면 한 그릇에 1,500원이고 배달비는 무조건 2,000원 고정이라면, 라면을 x그릇 시켰을 때 총 가격은 이렇게 계산된다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code>총 가격 = 1,500 × x + 2,000
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">이걸 공식 모양으로 옮기면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">ŷ = wx + b</code>와 똑같다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">공식 기호</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">라면 배달 예시</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">x</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">라면 개수</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">이미 알고 있는 입력값 (학습 대상 아님)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">w</code> (가중치)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">1,500원</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">그릇이 하나 늘어날 때마다 가격이 얼마나 오르는지. <strong>입력값이 결과에 미치는 영향의 크기(기울기)</strong></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">b</code> (편향)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">2,000원</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">입력이 0이어도(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">x=0</code>) 기본으로 붙는 값</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">ŷ</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">예측한 총 가격</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">공식으로 계산한 최종 예측값</td>
+</tr>
+</tbody>
+</table>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">w</code>가 클수록 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">x</code>가 한 단위 늘어날 때 결과가 더 크게 움직인다. 이것이 "가중치가 영향력의 크기를 나타낸다"는 말의 의미다. 학습(training)의 목표는 데이터에 가장 잘 맞는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">w</code>와 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">b</code>를 찾는 것이다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 손실 함수: "얼마나 틀렸는가"를 숫자로</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0929/0929-%EC%A0%95%ED%99%95%EB%8F%84%EC%99%80-%EC%86%90%EC%8B%A4%EA%B0%92-%EB%B0%A9%ED%96%A5.png" alt="손실 함수: &quot;얼마나 틀렸는가&quot;를 숫자로" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">손실 함수: &quot;얼마나 틀렸는가&quot;를 숫자로</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">모델의 예측값(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">ŷ</code>)과 실제 정답 사이의 오차들을 모아서, "이 모델이 지금 얼마나 못 맞추고 있는가"를 하나의 숫자로 나타낸 공식이 <strong>손실 함수</strong>다. 그 공식에 실제 값을 넣어 계산한 결과가 <strong>손실값(Loss)</strong> 이다.</p>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>시험 점수와 반대 방향.</strong> 시험 점수(정확도)는 높을수록 좋지만, 손실값은 <strong>골프 타수처럼 낮을수록 좋다.</strong> 손실값이 15인 모델보다 3인 모델이 더 적게 틀렸으므로 더 우수한 모델이다. 손실값이 8에서 2로 줄었다면 모델이 더 좋아진 것이다.</p>
+</blockquote>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">학습 과정은 이 손실값을 최소화하는 방향으로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">w</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">b</code>를 조금씩 조정해 나가는 것이다. 실제로 그 방향을 찾는 방법이 <strong>경사하강법</strong>이다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. MSE와 MAE: 미분 가능성이 갈린다</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0929/0929-MSE%EC%99%80-MAE-%EB%B9%84%EA%B5%90.png" alt="MSE와 MAE: 미분 가능성이 갈린다" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">MSE와 MAE: 미분 가능성이 갈린다</figcaption></figure>
+
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>MSE (평균 제곱 오차)</strong>: 오차를 제곱해서 평균낸다. 그래프가 <strong>둥근 밥그릇 모양</strong>이라 어느 지점에서도 매끄럽게 이어져 있다. 그래서 <strong>모든 구간에서 미분(기울기 계산)이 가능</strong>하다.</li>
+<li><strong>MAE (평균 절대 오차)</strong>: 오차의 절댓값을 평균낸다. 그래프가 <strong>V자 모양</strong>이라, 오차가 정확히 0인 지점에서 그래프가 뾰족하게 꺾인다. 그 지점에서는 <strong>미분이 불가능</strong>하다.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">경사하강법은 "기울기를 보고 공을 굴려 가장 낮은 곳을 찾아가는 것"에 비유할 수 있다. MSE(둥근 그릇)는 공이 어디서든 부드럽게 굴러가지만, MAE(V자)는 맨 밑 뾰족한 지점에서 공이 어느 방향으로 굴러야 할지 헷갈린다. 그래서 경사하강법 계산에는 <strong>MSE가 더 안정적</strong>이다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">구분</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">MSE (평균 제곱 오차)</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">MAE (평균 절대 오차)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">계산</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">오차를 제곱해서 평균</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">오차의 절댓값을 평균</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">그래프 모양</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">둥근 밥그릇</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">V자</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">오차 0 지점</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">매끄럽다</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">뾰족하게 꺾인다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">미분</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">모든 구간에서 가능</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">그 지점에서 불가능</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">경사하강법</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">더 안정적</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">방향이 헷갈린다</td>
+</tr>
+</tbody>
+</table>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 툴 스택: 역할 나눠서 협업하기</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0929/0929-%ED%88%B4%EC%8A%A4%ED%83%9D-%EC%A7%81%EB%A0%AC%EA%B3%BC-%EB%B3%91%EB%A0%AC.png" alt="툴 스택: 역할 나눠서 협업하기" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">툴 스택: 역할 나눠서 협업하기</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>비유.</strong> 요리할 때 한 사람이 재료 손질, 요리, 플레이팅을 혼자 다 하는 것보다 <strong>재료 손질 담당, 요리 담당, 플레이팅 담당</strong>을 따로 두고 순서대로 이어서 일하는 게 더 잘 된다.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">단일 AI 서비스는 기억할 수 있는 양이나 잘하는 작업의 종류에 한계가 있다. 이 제약을 극복하기 위해 <strong>특화된 여러 AI 도구(노트북LM, 퍼플렉시티 등)를 목적에 맞게 직렬(순서대로) 또는 병렬(동시에)로 조합</strong>해서 하나의 복잡한 과제를 해결하는 전략을 <strong>툴 스택(Tool Stack)</strong> 이라 부른다. 레고 블록을 이어 붙이듯 각 도구가 잘하는 부분만 가져다 쓰는 것이다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code>예: 회의 녹음 요약(A 도구) → 요약 내용 팩트체크(B 도구) → 최종 발표자료 제작(C 도구)
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. 데블스 애드버킷: 일부러 트집 잡아 달라고 부탁하기</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0929/0929-%EB%8D%B0%EB%B8%94%EC%8A%A4-%EC%95%A0%EB%93%9C%EB%B2%84%ED%82%B7.png" alt="데블스 애드버킷: 일부러 트집 잡아 달라고 부탁하기" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">데블스 애드버킷: 일부러 트집 잡아 달라고 부탁하기</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>비유.</strong> 그림일기를 다 쓰고 나서 엄격한 선생님에게 "이거 진짜 잘 쓴 거 맞아요? 흠 좀 잡아주세요!"라고 부탁하는 것.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">기획서나 사업계획서의 초안을 쓴 뒤, AI에게 <strong>"너는 이 프로젝트에 절대 투자하지 않을 깐깐한 투자 심사역이야, 문제점을 낱낱이 지적해줘"</strong> 처럼 엄격한 비판자 역할(페르소나)을 부여한다. 그러면 논리적 허점이나 비현실적인 비용 측정 같은 문제를 <strong>미리 발견</strong>할 수 있다. 이 기법이 <strong>데블스 애드버킷(Devil's Advocate)</strong> 이다.</p>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">헷갈리기 쉬운 비슷한 이름의 기법들</h3>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">기법</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">실제 의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>데블스 애드버킷</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">AI에게 엄격한 비판자 역할을 부여해 초안의 허점을 미리 찾아냄</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">스타일 트랜스퍼</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">특정 문체(스타일)를 다른 글에 이식하는 기법</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">바이브 코딩</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">대화하듯 AI와 주고받으며 개발을 진행하는 기법</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">러닝 코파일럿</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">AI를 학습 동반자(튜터)로 활용하는 개념</td>
+</tr>
+</tbody>
+</table>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">이 넷은 이름이 비슷하게 느껴질 수 있지만 층위가 다른 개념이다. "<strong>역할을 부여해서 비판을 받는다</strong>"는 키워드가 나오면 데블스 애드버킷을 먼저 떠올리자.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 오답노트 (2026-09-29)</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>처음에 손실값 비교 문제에서 "손실값이 큰 쪽(15)이 더 우수하다"를 골랐다. <strong>정확도(높을수록 좋음)와 손실값(낮을수록 좋음)의 방향을 헷갈린 것</strong>이다. 골프 타수 비유로 "숫자가 작을수록 좋다"는 감을 잡았다.</li>
+<li>선형 회귀 공식의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">w</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">b</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">x</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">ŷ</code>가 각각 무엇을 뜻하는지 처음엔 감이 안 왔다. "라면 개수 × 그릇당 가격 + 배달비" 같은 일상적인 계산식에 대입해 보니 이해가 됐다.</li>
+</ul>
+</div>

@@ -1,0 +1,171 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘 데일리 퀘스트는 5문항 모두 정답이었다. 어제 단어 일치(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">tokenize</code>와 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">set</code>)로 검색하면서 겪은 한계를 <strong>의미 기반 검색</strong>이 어떻게 푸는지 정리한다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>임베딩</strong>은 텍스트를 숫자 배열(벡터)로 바꿔 의미 기반 비교를 가능하게 한다.</li>
+<li><strong>코사인 유사도</strong>는 벡터의 방향이 얼마나 같은지 본다. 길이 차이에 따른 왜곡이 없다.</li>
+<li><strong>ANN</strong>은 정확도를 조금 양보하고 속도를 얻는 근사 검색이다.</li>
+<li><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">temperature=0</code></strong> 은 RAG에서 무작위성을 줄여 일관된 사실 답변을 얻기 위한 설정이다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 임베딩(Embedding): 문장을 숫자 배열로</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1118/1118-%EC%9E%84%EB%B2%A0%EB%94%A9-%EB%AC%B8%EC%9E%A5%EC%9D%84-%EC%88%AB%EC%9E%90%EB%A1%9C.png" alt="임베딩(Embedding): 문장을 숫자 배열로" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">임베딩(Embedding): 문장을 숫자 배열로</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>임베딩</strong>은 텍스트의 의미를 고차원 공간의 <strong>숫자 배열(벡터)</strong> 로 바꾸는 기술이다. 컴퓨터가 문장의 의미를 이해하고 <strong>문장 간 유사성을 계산</strong>할 수 있게 해 준다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-text">&quot;과제 제출 기한은 언제인가요?&quot;  →  [0.012, -0.034, 0.101, ... ]   (숫자 1,536개)
+</code></pre>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">용어</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">정체</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>임베딩</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">텍스트 → 벡터 변환 (의미 기반 연산을 가능하게 함)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">토큰 분할</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">텍스트를 쪼개는 전처리</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">파인튜닝</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">모델 가중치를 재학습</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">캐싱</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">연산 결과를 재사용</td>
+</tr>
+</tbody>
+</table>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>OpenAI <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">text-embedding-3-small</code>은 문장 1개를 <strong>1,536차원</strong> 벡터(길이 1,536의 실수 배열)로 바꾼다.</li>
+<li>왜 필요한가: 어제 만든 검색은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">문의</code>와 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">문의는</code>을 <strong>다른 단어</strong>로 봤다. 임베딩은 글자가 아니라 <strong>의미</strong>로 비교하므로 "문의 게시판"으로 물어도 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">문의는 ... 게시판에 남깁니다</code> 섹션을 찾을 수 있다. 어제 실습에서 남은 숙제였다.</li>
+</ul>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python"># 개념 이해용 예시 (OpenAI SDK)
+from openai import OpenAI
+
+client = OpenAI()
+res = client.embeddings.create(model=&quot;text-embedding-3-small&quot;, input=&quot;과제 제출 기한은 언제인가요?&quot;)
+vector = res.data[0].embedding
+print(len(vector))   # 1536
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 코사인 유사도: 방향이 얼마나 같은가</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1118/1118-%EC%BD%94%EC%82%AC%EC%9D%B8-%EC%9C%A0%EC%82%AC%EB%8F%84%EC%99%80-%EC%9C%A0%ED%81%B4%EB%A6%AC%EB%94%94%EC%95%88-%EA%B1%B0%EB%A6%AC.png" alt="코사인 유사도: 방향이 얼마나 같은가" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">코사인 유사도: 방향이 얼마나 같은가</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">두 벡터를 비교하는 방법은 여러 가지인데, 자연어 검색에서는 <strong>코사인 유사도(Cosine Similarity)</strong> 가 가장 표준적이다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-text">cos θ = (A · B) / (‖A‖ × ‖B‖)
+</code></pre>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">방식</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">보는 것</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">특징</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>코사인 유사도</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">두 벡터의 <strong>사잇각(방향 일치도)</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">벡터 <strong>크기</strong>와 무관해서 <strong>문서 길이 차이로 인한 왜곡이 없다</strong></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">유클리디안 거리</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">두 점 사이의 <strong>직선 거리</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">크기 차이에 민감하다</td>
+</tr>
+</tbody>
+</table>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>값이 1에 가까울수록 방향이 같다(의미가 비슷하다).</li>
+<li>비유: 두 사람이 <strong>같은 방향을 가리키는지</strong>를 본다. 얼마나 멀리 서 있는지(크기)는 보지 않는다. 긴 문서와 짧은 문서가 같은 내용을 말해도 벡터의 크기만 다를 뿐 방향은 비슷하다.</li>
+<li>해밍 거리, 맨해튼 거리는 교안에서 비교 대상으로 언급되지 않은 다른 방식이다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. ANN: 정확도를 조금 양보하고 속도를 얻는다</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1118/1118-ANN%EA%B3%BC-%EC%A0%84%EC%88%98-%ED%83%90%EC%83%89-%EB%B9%84%EA%B5%90.png" alt="ANN: 정확도를 조금 양보하고 속도를 얻는다" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">ANN: 정확도를 조금 양보하고 속도를 얻는다</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">벡터 데이터베이스에 벡터가 아주 많아지면 질문 벡터를 <strong>모든 벡터와 하나씩 비교</strong>하기가 너무 느려진다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">방식</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">동작</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">장단점</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">완전 전수 탐색 (Brute-force, K-NN)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>모든 벡터</strong>를 비교</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">정확하지만 데이터가 많아질수록 느려진다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>ANN (Approximate Nearest Neighbor)</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">벡터 공간을 <strong>군집화</strong>해서 <strong>탐색 범위를 제한</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">일부 정확도(Recall)를 양보하는 대신 속도가 수천 배 빨라진다</td>
+</tr>
+</tbody>
+</table>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>비유: 도서관에서 책을 찾을 때 <strong>전체 서가를 다 뒤지는 것</strong>(전수 탐색)과, <strong>분류 코너부터 찾아가는 것</strong>(ANN)의 차이다. 가끔 엉뚱한 코너를 고르면 아쉬운 책을 놓칠 수 있다(정확도 양보).</li>
+<li>한 줄: <strong>ANN = "근사"이므로 약간 틀려도 되는 대신 빠르다.</strong> 전수 탐색과는 반대 개념이다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. temperature=0: 무작위성 최소화</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1118/1118-temperature-%EB%82%AE%EC%9D%8C%EA%B3%BC-%EB%86%92%EC%9D%8C.png" alt="temperature=0: 무작위성 최소화" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">temperature=0: 무작위성 최소화</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">RAG에서 LLM이 <strong>제공된 문맥에 기반한 일관된 사실 답변</strong>을 만들도록, 확률적 무작위성을 줄이는 파라미터가 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">temperature</code>다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python"># 개념 이해용 예시
+model = ChatOpenAI(model=&quot;gpt-4o-mini&quot;, temperature=0)   # 교안: model 초기화 시 temperature=0
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">temperature</code>가 <strong>높을수록</strong> 답이 다양해지고(창의적), <strong>낮을수록</strong> 일관되고 보수적이다.</li>
+<li>사실 기반 응답이 중요한 RAG에서는 임의적 상상(환각)을 억제하려고 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">temperature=0</code>으로 설정한다.</li>
+<li>답변 형식은 <strong>파라미터 이름과 값을 함께</strong> <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">temperature=0</code>처럼 쓴다.</li>
+<li>참고(일반적인 설명): 0으로 둬도 모델 내부 구현에 따라 항상 100% 똑같은 답이 보장되지는 않는다. 환각을 줄이는 보조 수단이지 근거 없이 정확해지는 마법은 아니다. 근거는 어디까지나 검색으로 붙인 문맥이다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. 한 장으로 연결하기</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1118/1118-RAG-%EC%A0%84%EC%B2%B4-%ED%9D%90%EB%A6%84-%EC%A0%95%EB%A6%AC.png" alt="한 장으로 연결하기" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">한 장으로 연결하기</figcaption></figure>
+
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-text">[인덱싱]  문서 → 청크 → 임베딩(1,536차원 벡터) → 벡터 DB 저장
+[질의]    질문 → 임베딩 → 코사인 유사도로 가까운 청크 검색 (대규모면 ANN)
+          → 청크를 붙여 프롬프트 구성 → LLM(temperature=0) → 답변
+</code></pre>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">질문</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">한 줄 답</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">텍스트를 벡터로 바꾸는 기술?</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">임베딩</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">text-embedding-3-small</code>의 차원?</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">1,536</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">길이 왜곡 없는 표준 유사도?</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">코사인 유사도</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">속도를 위해 정확도를 조금 양보하는 색인?</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">ANN</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">일관된 사실 답변을 위한 설정?</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">temperature=0</code></td>
+</tr>
+</tbody>
+</table>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 오늘의 결과</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>5문항 전부 정답. 오답노트는 없다.</li>
+<li>지난 4번의 실수는 모두 부정 문제("해당하지 않는 것")였는데, 이번엔 부정 문제가 없었다. 다음에 부정 문제가 나오면 <strong>부정 표현에 먼저 표시</strong>하는 습관을 이어 가자.</li>
+<li>헷갈리기 쉬운 짝: <strong>임베딩(변환) vs 리트리버(검색기)</strong>, <strong>코사인(방향) vs 유클리디안(직선 거리)</strong>, <strong>ANN(근사·빠름) vs 전수 탐색(정확·느림)</strong>.</li>
+</ul>
+</div>

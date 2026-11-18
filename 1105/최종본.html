@@ -1,0 +1,167 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘 데일리 퀘스트는 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">response_model</code>이 하는 일</strong>, <strong>제네릭과 MRO 복습</strong>, <strong>N+1 문제와 SQLAlchemy 로딩 옵션</strong>, <strong>멱등성</strong>을 다뤘다. 틀린 문제 두 개는 오답노트에 정리했다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">response_model</code>은 응답에서 <strong>모델에 정의된 필드만 통과시키는 보안 체</strong>다.</li>
+<li><strong>N+1 문제</strong>는 연관 데이터를 따로따로 조회해서 생긴다. 해결은 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">joinedload()</code></strong> 처럼 미리 같이 가져오는 것이다.</li>
+<li><strong>멱등성</strong>은 같은 요청을 몇 번 보내도 서버의 최종 상태가 같은 성질이다. GET, PUT, DELETE는 멱등하고 POST는 일반적으로 아니다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. response_model: 응답을 걸러주는 "보안 체"</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1105/1105-response_model-%EB%B3%B4%EC%95%88-%EC%B2%B4.png" alt="response_model: 응답을 걸러주는 &quot;보안 체&quot;" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">response_model: 응답을 걸러주는 &quot;보안 체&quot;</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">DB에서 꺼낸 원본 데이터에는 클라이언트에게 보여주면 안 되는 필드(비밀키, 비밀번호 해시 등)가 섞여 있을 수 있다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">response_model</code>을 지정하면 FastAPI가 <strong>모델에 정의된 필드만 통과</strong>시킨다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">class BookResponse(BaseModel):
+    id: int
+    title: str
+
+@app.get(&quot;/books/{book_id}&quot;, response_model=BookResponse)
+def get_book(book_id: int):
+    return {&quot;id&quot;: 1, &quot;title&quot;: &quot;FastAPI&quot;, &quot;db_secret_key&quot;: &quot;abc123&quot;}
+    # 응답에는 id, title만 나가고 db_secret_key는 걸러진다
+</code></pre>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">방식</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">필터링</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">민감 정보</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">response_model</code> 지정</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>있음</strong> (정의된 필드만 통과)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">유출 방지</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">원본 딕셔너리를 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">JSONResponse</code>에 직접 담아 반환</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>없음</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">그대로 유출될 위험</td>
+</tr>
+</tbody>
+</table>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">response_model</code>을 지정하면 <strong>OpenAPI 명세(Swagger)에도 자동 등록</strong>되어 응답 형식이 문서에 보인다.</li>
+<li>앞 글의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">APIResponse[BookResponse]</code> 같은 제네릭 모델도 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">response_model</code>로 지정할 수 있다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 제네릭과 MRO 복습</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>제네릭(Generic)</strong>: 타입을 미리 고정하지 않고 사용 시점에 대입하는 기법이다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">T = TypeVar("T")</code>와 함께 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">class APIResponse(BaseModel, Generic[T])</code>로 쓴다.</li>
+<li><strong>MRO(왼쪽 우선 법칙)</strong>: 다중 상속에서 같은 이름의 기능이 둘 이상이면 <strong>괄호 안 왼쪽 클래스가 우선</strong>한다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">(BaseModel, Generic[T])</code>에서는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">BaseModel</code>이 우선권을 가진다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. N+1 문제와 SQLAlchemy 로딩 옵션</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1105/1105-N%2B1-%EB%AC%B8%EC%A0%9C%EC%99%80-joinedload.png" alt="N+1 문제와 SQLAlchemy 로딩 옵션" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">N+1 문제와 SQLAlchemy 로딩 옵션</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>N+1 문제</strong>는 상위 테이블(Owner)을 1번 조회한 뒤, 반복문에서 각 Owner의 하위 데이터(Pet)에 접근할 때마다 쿼리가 <strong>N번 추가</strong>로 나가는 문제다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">owners = session.scalars(select(Owner)).all()   # 쿼리 1번
+for owner in owners:
+    print(owner.pets)                            # Owner마다 쿼리 1번씩 → N번
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>원인은 <strong>지연 로딩(lazy loading)</strong> 이다. 연관 데이터를 실제로 쓰는 순간에야 쿼리를 보낸다.</li>
+<li>해결은 연관 데이터를 <strong>미리 같이 가져오는</strong> 로딩 옵션을 쓰는 것이다.</li>
+</ul>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">from sqlalchemy import select
+from sqlalchemy.orm import joinedload
+
+stmt = select(Owner).options(joinedload(Owner.pets))   # LEFT OUTER JOIN 1번으로 함께 조회
+owners = session.scalars(stmt).unique().all()
+</code></pre>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">옵션</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">동작</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">N+1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">joinedload()</code></strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>LEFT OUTER JOIN 1회</strong>로 연관 데이터를 함께 조회</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">해결</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">lazyload()</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">쓰는 순간 따로 조회 (지연 로딩)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>원인</strong></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">defer()</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">특정 <strong>컬럼</strong>의 로딩을 미룸</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">무관 (연관 테이블이 아니라 컬럼 단위)</td>
+</tr>
+</tbody>
+</table>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">위 코드는 개념 이해용 예시다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.unique()</code>는 컬렉션을 JOIN으로 가져올 때 중복된 Owner 행을 합치기 위해 붙인다. 교안에는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">joinedload</code> 외의 옵션(예: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">selectinload</code>)이 나왔는지 확인하지 못했다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 멱등성(Idempotency)</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1105/1105-HTTP-%EB%A9%94%EC%84%9C%EB%93%9C-%EB%A9%B1%EB%93%B1%EC%84%B1.png" alt="멱등성(Idempotency)" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">멱등성(Idempotency)</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>같은 요청을 한 번 보내든 여러 번 보내든 서버의 최종 데이터 상태가 항상 같은</strong> 성질이다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">메서드</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">멱등성</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">이유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">GET</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">O</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">조회만 하므로 상태가 안 바뀐다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">PUT</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">O</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">같은 값으로 덮어쓰면 결과가 같다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">DELETE</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">O</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">첫 성공 이후에는 "데이터가 없는 상태"가 계속 유지된다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">POST</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">일반적으로 X</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">보낼 때마다 새 데이터가 생길 수 있다</td>
+</tr>
+</tbody>
+</table>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">DELETE를 두 번째 보내면 응답 코드는 달라질 수 있다(예: 404). 하지만 <strong>서버의 최종 상태</strong>는 같으므로 멱등하다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오답노트 (2026-11-05)</h2>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">문항</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">내가 고른 것</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">정답 방향</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">틀린 이유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">1. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">response_model</code> 동작</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">원본 딕셔너리를 그대로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">JSONResponse</code>에 반환</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">정의된 필드만 통과시키는 <strong>보안 체</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">response_model</code>이 막으려는 방식을 거꾸로 고름</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">4. N+1 해결 로딩 옵션</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">defer()</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">joinedload()</code></strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">defer()</code>는 컬럼 로딩을 미루는 옵션이라 N+1과 무관</td>
+</tr>
+</tbody>
+</table>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>1번</strong>: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">response_model</code> = 체(필터). "체에 걸러서 안전한 필드만 내보낸다"로 기억한다. 필터 없이 원본을 그대로 반환하는 것이 오히려 <strong>대비되는 위험한 방식</strong>이다.</li>
+<li><strong>4번</strong>: N+1의 핵심은 <strong>"연관 테이블을 따로따로 조회한다"</strong> 는 점이다. 해법은 <strong>미리 JOIN으로 같이 가져오기(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">joinedload</code>)</strong> 다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">lazyload</code>는 원인, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">defer</code>는 컬럼 지연이라 목적이 다르다.</li>
+<li>맞힌 문제: 2번(제네릭), 3번(MRO 왼쪽 우선), 5번(멱등성).</li>
+</ul>
+</div>

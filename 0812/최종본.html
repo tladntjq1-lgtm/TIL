@@ -1,0 +1,219 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘은 프로그램의 흐름을 만드는 조건문과 반복문, 그리고 코드를 묶어 재사용하는 함수를 정리했다. 조건문은 갈림길, 반복문은 되풀이, 함수는 이름 붙인 코드 덩어리라고 보면 된다. 코드를 바로 치기 전에 수도코드로 생각을 먼저 정리하는 습관도 같이 적어 둔다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>조건문은 위에서 아래로 평가하다가 <strong>처음으로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">True</code>가 되는 블록만 실행</strong>한다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">range()</code>는 <strong>끝 값을 포함하지 않는다.</strong></li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">break</code>는 반복문 전체를 끝내고, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">continue</code>는 이번 회차만 건너뛴다.</li>
+<li>함수는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">print</code>로 보여 주기보다 필요한 값을 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">return</code></strong> 하는 것이 일반적이다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">*args</code>는 튜플, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">**kwargs</code>는 딕셔너리로 받는다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 조건문 흐름</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0812/0812-%EC%A1%B0%EA%B1%B4%EB%AC%B8-%EC%8B%A4%ED%96%89-%ED%9D%90%EB%A6%84.png" alt="조건문 흐름" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">조건문 흐름</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">파이썬은 조건을 위에서 아래로 순차 평가하며 <strong>최초로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">True</code>가 되는 블록만 실행</strong>하고 나머지는 건너뛴다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">score = 85
+if score &gt;= 90:
+    print(&quot;A&quot;)
+elif score &gt;= 80:
+    print(&quot;B&quot;)   # 여기만 실행되고 즉시 조건문을 탈출
+else:
+    print(&quot;C&quot;)
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">입력을 받아 조건으로 바꿔 쓰는 예:</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">member_answer = input(&quot;회원인가요? (y/n): &quot;).strip().lower()
+is_member = member_answer == &quot;y&quot;
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. for문과 range()</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0812/0812-range-%EB%81%9D%EA%B0%92-%EC%A0%9C%EC%99%B8.png" alt="for문과 range()" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">for문과 range()</figcaption></figure>
+
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">for i in range(5):
+    print(&quot;Python&quot;)
+
+for 반복변수 in 반복할값들:
+    반복해서 실행할 코드
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">range()</code>는 <strong>끝 값을 포함하지 않는다.</strong></p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">호출</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">생성되는 값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">range(5)</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">0, 1, 2, 3, 4</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">range(1, 6)</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">1, 2, 3, 4, 5</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">range(2, 11, 2)</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">2, 4, 6, 8, 10</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">range(2, 10, 3)</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">2, 5, 8 (11은 10 이상이라 제외)</td>
+</tr>
+</tbody>
+</table>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">반복문에서 값을 누적하는 패턴:</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">total = 0
+for number in range(1, 6):
+    total += number
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. while문</h2>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">while 조건식:
+    조건이 참인 동안 반복할 코드
+
+count = 1
+while count &lt;= 5:
+    print(count)
+    count += 1
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">실행 흐름: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">count=1</code> → 조건 확인(True) → 출력 → <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">count += 1</code> → 조건 재확인 → ... → <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">count=6</code>이 되면 조건이 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">False</code>가 되어 종료.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">break</code> 조건이 없으면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">while True:</code>는 무한히 돈다는 점을 항상 의식해야 한다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. break와 continue의 차이</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0812/0812-break%EC%99%80-continue-%EB%B9%84%EA%B5%90.png" alt="break와 continue의 차이" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">break와 continue의 차이</figcaption></figure>
+
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">break</code>: 반복문 <strong>전체</strong>를 즉시 끝낸다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">continue</code>: <strong>현재 회차</strong>의 남은 코드만 건너뛰고 다음 반복으로 넘어간다 (반복문 자체는 끝나지 않음).</li>
+</ul>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">for number in range(1, 6):
+    if number == 3:
+        break        # 3에서 반복 전체 종료 → 1, 2 출력
+    print(number)
+
+for number in range(1, 6):
+    if number == 3:
+        continue     # 3만 건너뜀 → 1, 2, 4, 5 출력
+    print(number)
+</code></pre>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">문제를 코드로 옮기기 전에: 수도코드</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">바로 코드를 작성하지 말고, 한글로 수도코드를 먼저 짜는 습관이 중요하다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code>문제 → 데이터 → 반복 → 조건 → 결과 → 코드
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>데이터는 변수에 담는다.</li>
+<li>반복문에 들어가는 데이터는 보통 리스트/딕셔너리 형태다.</li>
+<li>테이블(표) 형태의 데이터를 담을 그릇이 마땅치 않으면 "리스트 안에 딕셔너리"를 떠올린다.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">AI에게 수도코드를 짜달라고 요청하고 직접 구현해 보는 연습도 도움이 된다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. 함수 정의와 호출</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">반복되는 코드를 함수로 묶으면 재사용할 수 있다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">print(&quot;안녕하세요!&quot;)
+print(&quot;파이썬 공부를 시작합니다.&quot;)
+
+print(&quot;안녕하세요!&quot;)
+print(&quot;파이썬 공부를 시작합니다.&quot;)
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">위 코드를 함수로 묶으면:</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">def greet():
+    print(&quot;안녕하세요!&quot;)
+    print(&quot;파이썬 공부를 시작합니다.&quot;)
+
+greet()
+greet()
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 매개변수와 인수, return</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0812/0812-%ED%95%A8%EC%88%98-%ED%98%B8%EC%B6%9C%EA%B3%BC-return-%ED%9D%90%EB%A6%84.png" alt="매개변수와 인수, return" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">매개변수와 인수, return</figcaption></figure>
+
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">def add(a, b):        # a, b → 매개변수(parameter)
+    return a + b
+
+total = add(10, 20)   # 10, 20 → 인수(argument)
+print(total)          # 30
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">10</code>과 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">20</code>을 인수로 전달 → <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">a</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">b</code>가 값을 받음 → <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">a + b</code> 계산 → <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">return 30</code> → <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">total</code>에 30 저장.</li>
+<li>함수 안에서는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">print</code>를 잘 쓰지 않고, <strong>필요한 값을 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">return</code>하는 것이 일반적</strong>이다. (<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">print</code>는 화면에 보여줄 뿐 값을 반환하지 않는다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">split()</code>처럼 값을 반환하는 함수와는 역할이 다르다.)</li>
+</ul>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">여러 값 반환 (튜플 언패킹)</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">함수는 여러 값을 반환하고, 호출하는 쪽에서 튜플 언패킹으로 나눠 받을 수 있다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">def divide(a, b):
+    quotient = a // b
+    remainder = a % b
+    return quotient, remainder
+
+q, r = divide(17, 4)
+</code></pre>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">기본값 매개변수와 키워드 인수</h3>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">def greet(name, greeting=&quot;안녕하세요&quot;):
+    print(f&quot;{greeting}, {name}님!&quot;)
+
+greet(&quot;민수&quot;)                     # 기본값 사용
+greet(&quot;민수&quot;, greeting=&quot;반갑습니다&quot;)  # 키워드 인수로 덮어쓰기
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">7. 가변 인수와 언패킹</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0812/0812-args%EC%99%80-kwargs-%EC%96%B8%ED%8C%A8%ED%82%B9.png" alt="가변 인수와 언패킹" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">가변 인수와 언패킹</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">매개변수 앞에 별표 하나(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">*</code>)를 붙이면, 전달된 여러 인수를 순서대로 묶어 <strong>튜플</strong>로 처리한다. 별표 두 개(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">**</code>)는 <strong>딕셔너리</strong> 구조로 처리된다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">def show_args(*args, **kwargs):
+    print(args)    # 튜플
+    print(kwargs)  # 딕셔너리
+</code></pre>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">*하나는 튜플</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">**딕셔너리</code> — 헷갈릴 때마다 이 문장으로 기억하기.</p>
+</blockquote>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">같은 원리로 언패킹에도 별표를 쓸 수 있다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">x, *rest = (1, 2, 3, 4)
+print(x)     # 1
+print(rest)  # [2, 3, 4]  ← 별표가 붙은 변수는 원본 자료형과 관계없이 항상 리스트로 담긴다
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">8. generator와 yield</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">return</code>은 함수를 완전히 종료시키지만, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">yield</code>는 <strong>값을 반환하면서도 함수의 실행 상태(지역 변수, 실행 위치)를 메모리에 보존한 채 일시 정지</strong>한다. 다음 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">next()</code> 호출 시 그 지점부터 다시 실행된다.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">리스트 컴프리헨션(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">[]</code>)과 문법이 비슷하지만 소괄호(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">()</code>)를 쓰는 <strong>제너레이터 표현식</strong>은 결과를 한 번에 메모리에 올리지 않고 필요한 시점에 하나씩 생성해 메모리를 절약한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">squares = (x * x for x in range(1000000))  # 제너레이터: 메모리 절약
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">정리와 복습</h2>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">주제</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">기억할 것</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">조건문</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">위에서 아래로 평가, 처음 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">True</code>인 블록만 실행</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">range()</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">끝 값 제외 (<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">range(1, 6)</code> → 1~5)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">while</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">조건이 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">False</code>가 되면 종료, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">break</code> 없는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">while True</code>는 무한 반복</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">break</code> / <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">continue</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">반복 전체 종료 / 이번 회차만 건너뜀</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">수도코드</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">문제 → 데이터 → 반복 → 조건 → 결과 → 코드</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">매개변수 / 인수</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">정의할 때 쓰는 이름 / 호출할 때 넘기는 값</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">return</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">값을 돌려주고 함수를 끝낸다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">*args</code> / <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">**kwargs</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">튜플 / 딕셔너리</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">yield</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">값을 내보내고 실행 상태를 보존한 채 일시 정지</td>
+</tr>
+</tbody>
+</table>
+</div>

@@ -1,0 +1,100 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘은 LLM을 똑똑하게, 비판적으로 쓰기 위해 꼭 알아야 하는 개념들을 배웠다. <strong>환각 현상, 인지 부채, SIFT 검증법, 멀티모델 교차검증, 데이터 편향성</strong>까지 다섯 가지다. 용어가 낯설어서 틀린 부분이 꽤 있었기 때문에, 마지막에 오답노트도 꼼꼼하게 남겨 둔다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>환각</strong>은 LLM이 거짓말을 해서 생기는 것이 아니라, <strong>다음 토큰을 예측해 문장을 만드는 방식 자체</strong>에서 생기는 구조적 특성이다.</li>
+<li><strong>인지 부채</strong>는 사고와 글쓰기를 LLM에 전적으로 맡길 때 쌓이는, 나중에 갚아야 할 정신적 빚이다.</li>
+<li><strong>SIFT</strong>는 Stop, Investigate the source, Find better coverage, Trace 네 단계이고, 특히 <strong>F(여러 곳, 넓게)</strong> 와 <strong>T(원문, 깊게)</strong> 를 구분해야 한다.</li>
+<li><strong>데이터 편향성</strong>은 과거 데이터 속 고정관념을 AI가 그대로 학습해서 결과물에 드러내는 현상이다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 환각 현상 (Hallucination)</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1001/1001-%ED%99%98%EA%B0%81-%EB%8B%A4%EC%9D%8C-%ED%86%A0%ED%81%B0-%EC%98%88%EC%B8%A1.png" alt="환각 현상 (Hallucination)" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">환각 현상 (Hallucination)</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>근본 원인.</strong> LLM은 사실을 조회하는 검색엔진이 아니라, <strong>통계적으로 가장 자연스러운 다음 토큰(단어)을 예측해서 문장을 생성</strong>하는 확률 기계다. 끝말잇기를 아주 잘하는 사람처럼 말을 그럴듯하게 이어 붙이지만, 그 내용이 사실인지는 검증하지 않는다. 그래서 정보의 빈 공간을 그럴듯한 문장으로 메우다가 <strong>없는 사실을 지어내는 환각</strong>이 발생한다.</p>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">AI를 의인화해서 "일부러 거짓말한다"거나 단순한 "기술적 버그"로 이해하는 것은 흔한 오해다. 환각은 LLM이 애초에 동작하는 방식(다음 토큰 예측) 자체에서 비롯된 구조적 특성이다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 인지 부채 (Cognitive Debt)</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1001/1001-%EC%9D%B8%EC%A7%80-%EB%B6%80%EC%B1%84.png" alt="인지 부채 (Cognitive Debt)" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">인지 부채 (Cognitive Debt)</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">복잡한 사고, 글쓰기, 문제 해결 과정을 LLM에 <strong>전적으로 위임</strong>할 때 발생하는 현상이다. 장기적으로 인간의 <strong>비판적 사고력과 뇌 신경망 연결성을 약화시키는 지연된 정신적 비용</strong>을 말한다.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">계산기를 너무 오래 쓰면 암산 능력이 떨어지는 것과 비슷하다. 지금 당장은 티가 안 나지만, 나중에 한꺼번에 갚아야 할 "빚"처럼 쌓인다. MIT 미디어랩 연구에서 LLM 의존도가 높은 그룹의 뇌 연결성 저하가 보고된 바 있다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. SIFT 프레임워크: 정보 검증 4단계</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1001/1001-SIFT-4%EB%8B%A8%EA%B3%84%EC%99%80-F-T-%EA%B5%AC%EB%B6%84.png" alt="SIFT 프레임워크: 정보 검증 4단계" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">SIFT 프레임워크: 정보 검증 4단계</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">출처가 불분명한 정보(AI 요약 포함)를 마주했을 때 검증하는 순서다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">단계</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">이름</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">하는 일</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>S</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Stop</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">일단 멈추기. 감정적으로 반응하지 않고 침착하게</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>I</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Investigate the source</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">그 정보를 말한 사람이나 기관이 실제로 존재하는지 조사</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>F</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Find better coverage</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>다른 곳(매체)들도 같은 얘기를 하는지</strong> 교차 검색. 넓게 보기</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>T</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Trace</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>원문 링크를 직접 클릭해 끝까지 읽기.</strong> 체리피킹(유리한 부분만 발췌) 여부 확인, 깊게 보기</td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">F와 T, 헷갈리지 않는 법</h3>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>F</strong>는 "<strong>여러 곳</strong>"에서 같은 말을 하는지 확인하는 <strong>넓은(width)</strong> 검증이다.</li>
+<li><strong>T</strong>는 "<strong>원문 그 자체</strong>"로 들어가서 끝까지 다 읽어 보는 <strong>깊은(depth)</strong> 검증이다.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">문제에 "<strong>원문</strong>", "<strong>링크 직접 클릭</strong>", "<strong>끝까지 대조</strong>", "<strong>체리피킹</strong>"이라는 단어가 나오면 무조건 <strong>T(Trace)</strong> 다. "<strong>여러 매체</strong>", "<strong>교차 검색</strong>", "<strong>다른 곳도 보도했는지</strong>"가 나오면 <strong>F</strong>다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 멀티모델 교차검증 워크플로우</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1001/1001-%EB%A9%80%ED%8B%B0%EB%AA%A8%EB%8D%B8-%EA%B5%90%EC%B0%A8%EA%B2%80%EC%A6%9D.png" alt="멀티모델 교차검증 워크플로우" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">멀티모델 교차검증 워크플로우</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">하나의 모델에만 의존하지 않고, 각 모델의 강점에 맞게 <strong>역할을 분담</strong>해서 결과물을 검증하는 방식이다. "어떤 모델도 환각으로부터 완전히 자유롭지 않다"는 전제 위에서, 서로 다른 모델이 서로를 보완하게 만든다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">모델</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">역할</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">ChatGPT</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">메인 작가 (초안 작성)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Gemini</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">실시간 검토관. 구글 검색 엔진과의 강력한 연동으로 최신 뉴스와 트렌드에 부합하는지 검토</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Perplexity</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">출처 검증 감사관. 근거와 출처 확인 전담</td>
+</tr>
+</tbody>
+</table>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. 데이터 편향성 (Data Bias)</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1001/1001-%EB%8D%B0%EC%9D%B4%ED%84%B0-%ED%8E%B8%ED%96%A5%EC%84%B1.png" alt="데이터 편향성 (Data Bias)" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">데이터 편향성 (Data Bias)</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">AI 그림 생성 도구에 '성공한 CEO'를 요청하면 정장 입은 중년 남성을, '친절한 간호사'를 요청하면 젊은 여성을 압도적으로 묘사한다. 이처럼 <strong>인류가 과거에 남긴 데이터 속 고정관념(성별, 인종 등)을 AI가 도덕적 필터 없이 그대로 학습</strong>해서 결과물에 투영하는 현상이 <strong>데이터 편향성</strong>이다.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오래된 사진첩만 보고 그림을 따라 그리면 그 시절의 편견까지 그대로 베끼게 되는 것과 같다. 이 문제는 구조적으로 <strong>AI 디바이드</strong>(AI 활용 격차로 인한 사회적 불평등 심화)로 이어질 수 있다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 오답노트 (2026-10-01)</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>인지 부채(Cognitive Debt)</strong> 를 처음엔 "메우다"라고 완전히 다른 답을 적었다. 생소한 용어라 질문 자체를 이해하지 못했던 것이다. "계산기 비유"로 다시 설명을 듣고 바로 이해했다.</li>
+<li><strong>SIFT의 F와 T를 두 번이나 헷갈렸다.</strong> 원래 퀴즈에서도, 확인 문제에서도 F를 골랐다. "여러 곳에서 찾기(F, 넓게)"와 "원문 하나를 끝까지 추적하기(T, 깊게)"로 대비해서 설명을 들은 뒤에야 정확히 구분했다. <strong>이 두 단계는 유독 헷갈리기 쉬우니, 다음에 또 나오면 이 대비 문장을 떠올리기.</strong></li>
+<li>정확한 용어(<strong>데이터 편향성</strong>)를 몰라서 "학습데이터 재생산현상"이라고 풀어서 답했다. 개념 자체는 맞게 이해하고 있었다는 뜻이므로, 정확한 용어 이름을 기억해 두는 것만 남은 과제다.</li>
+</ul>
+</div>

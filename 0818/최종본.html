@@ -1,0 +1,212 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘은 파이썬에서 <strong>클래스와 객체</strong>를 배우고, <strong>재귀</strong>로 쿼드트리 압축 문제를 풀어 봤다. 그리고 데일리 퀘스트와 퀴즈에서 틀렸거나 헷갈렸던 개념을 오답노트로 모아 두었다. 하나씩 정리해 둔다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>클래스는 <strong>설계도(붕어빵틀)</strong>, 객체는 그 설계도로 메모리에 만든 <strong>실제 값(붕어빵)</strong> 이다.</li>
+<li>재귀는 <strong>같은 작업을 더 작은 입력에 반복</strong>하는 구조이고, <strong>종료 조건(기저 조건)</strong> 이 반드시 있어야 한다.</li>
+<li>헷갈린 개념은 오답노트에 모아 두고 다시 본다. (리스트와 튜플, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">all([])</code>, 별표 언패킹, f-string, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">yield</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">from ... import</code> 등)</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 클래스는 설계도, 객체는 실제 값</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0818/0818-%ED%81%B4%EB%9E%98%EC%8A%A4%EC%99%80-%EA%B0%9D%EC%B2%B4.png" alt="클래스는 설계도, 객체는 실제 값" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">클래스는 설계도, 객체는 실제 값</figcaption></figure>
+
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">클래스는 붕어빵틀, 객체는 붕어빵이다.</p>
+</blockquote>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">클래스는 속성(property)과 메서드를 정의한 <strong>설계도</strong>이고, 객체(object = instance)는 그 설계도를 바탕으로 메모리에 실제 할당된 값이다. 같은 클래스로 만든 객체들은 서로 독립된 메모리 공간을 가지므로, 한쪽을 변경해도 다른 쪽에는 영향을 주지 않는다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code>클래스 설계 → 객체 생성 → 속성 저장 → 메서드 호출
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 기본 문법: __init__과 self</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0818/0818-init%EA%B3%BC-self-%ED%9D%90%EB%A6%84.png" alt="기본 문법: __init__과 self" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">기본 문법: __init__과 self</figcaption></figure>
+
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">class Student:
+    def __init__(self, name, score):
+        self.name = name
+        self.score = score
+
+    def show_result(self):
+        print(f&quot;{self.name}님의 점수는 {self.score}입니다.&quot;)
+        if self.score &gt;= 60:
+            print(&quot;합격입니다&quot;)
+        else:
+            print(&quot;불합격입니다&quot;)
+
+student1 = Student(&quot;홍길동&quot;, 45)
+student1.show_result()
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">__init__()</code>: 객체를 생성할 때 가장 먼저 호출되는 <strong>초기화 함수(생성자, constructor)</strong> 다. 객체 생성 시 필요한 초기값을 저장한다. 소멸 시 호출되는 함수가 아니라는 점에 주의한다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">self</code>: 현재 객체 자기 자신을 가리키는 참조다. 메서드 안에서 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">self.속성</code>으로 그 객체만의 값을 읽고 쓴다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. 클래스와 딕셔너리, 무엇을 쓸까</h2>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;"></th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">특징</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">딕셔너리</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">key: value</code>로 간단한 데이터를 담을 때 사용</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">클래스</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">데이터(속성)와 기능(메서드)이 함께, 반복적으로 필요할 때 사용</td>
+</tr>
+</tbody>
+</table>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">간단한 데이터 하나만 필요하면 딕셔너리로 충분하다. 하지만 "같은 모양의 데이터가 여러 개 있고, 그 데이터에 대해 반복적으로 수행할 동작(메서드)"이 있다면 클래스를 고려한다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 객체를 리스트에 담아 반복 처리</h2>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">students = [Student(&quot;민수&quot;, 85), Student(&quot;지영&quot;, 92)]
+for student in students:
+    student.show_result()
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">객체를 리스트에 담아 두면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">for</code> 문으로 하나씩 꺼내 같은 메서드를 호출할 수 있다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. 오류가 났을 때 확인하는 순서</h2>
+<ol style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">TypeError</code>: 인수 개수와 타입이 맞는지 확인한다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">AttributeError</code>: 존재하지 않는 속성이나 메서드를 호출했는지 확인한다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">self</code> 누락: 메서드를 정의할 때 첫 번째 매개변수로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">self</code>를 빠뜨렸는지 확인한다.</li>
+</ol>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">AI에게 완성된 클래스 코드를 통째로 요구하기보다, <strong>구조가 맞는지, 오류 원인이 무엇인지</strong>를 검토받는 방식으로 활용하는 것이 학습에 더 도움이 된다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 재귀와 쿼드트리 압축 문제</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0818/0818-%EC%BF%BC%EB%93%9C%ED%8A%B8%EB%A6%AC-%EC%9E%AC%EA%B7%80-%ED%9D%90%EB%A6%84.png" alt="재귀와 쿼드트리 압축 문제" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">재귀와 쿼드트리 압축 문제</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">N×N 크기의 흑백 이미지(0과 1로 이루어진 격자)를 쿼드트리 방식으로 압축하는 문제다. 영역 안의 모든 값이 같으면 그 값 하나로 표현하고, 섞여 있으면 4등분(좌상, 우상, 좌하, 우하)해서 같은 과정을 재귀적으로 반복한다.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">풀기 전에 문제를 바로 코드로 옮기지 않고, 스스로 이런 질문들로 단계적으로 쪼개 봤다.</p>
+<ol style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>2차원 이미지에서 행과 열은 어떻게 표현되는가?</li>
+<li>N×N 영역에서 모든 픽셀이 같은지 어떻게 확인하는가?</li>
+<li>영역이 섞여 있으면 몇 개로, 어떤 좌표로 나눠야 하는가?</li>
+<li>재귀의 종료 조건(기저 조건)은 무엇인가?</li>
+<li>4개 영역의 처리 순서가 바뀌면 결과가 달라지는가?</li>
+</ol>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">7. 풀이 코드: 검사 함수와 압축 함수</h2>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">def is_same(x, y, size, grid):
+    &quot;&quot;&quot;현재 영역(size x size)의 모든 값이 동일한지 검사&quot;&quot;&quot;
+    target = grid[x][y]
+    for i in range(size):
+        for j in range(size):
+            if grid[x + i][y + j] != target:
+                return False
+    return True
+
+
+def compress(x, y, size, grid):
+    &quot;&quot;&quot;쿼드트리 알고리즘으로 영역을 재귀적으로 압축&quot;&quot;&quot;
+    # 1. 기저 조건: 현재 영역이 모두 같은 값
+    if is_same(x, y, size, grid):
+        return str(grid[x][y])
+
+    # 2. 값이 섞여 있으면 4등분
+    half = size // 2
+    top_left = compress(x, y, half, grid)
+    top_right = compress(x, y + half, half, grid)
+    bottom_left = compress(x + half, y, half, grid)
+    bottom_right = compress(x + half, y + half, half, grid)
+
+    # 3. 괄호로 감싸서 반환
+    return f&quot;({top_left}{top_right}{bottom_left}{bottom_right})&quot;
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">is_same()</code>은 영역의 첫 값을 기준으로 모든 칸이 같은지 검사한다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">compress()</code>는 같으면 그 값을 문자열로 돌려주고(기저 조건), 섞여 있으면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">half = size // 2</code>로 4등분해서 자기 자신을 4번 호출한다.</li>
+<li>4개 결과는 좌상, 우상, 좌하, 우하 순서로 이어 붙이고 괄호로 감싼다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">8. 4x4 예제를 손으로 추적하기</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0818/0818-4x4-%EC%B6%94%EC%A0%81.png" alt="4x4 예제를 손으로 추적하기" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">4x4 예제를 손으로 추적하기</figcaption></figure>
+
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code>N = 4
+0 0 0 0
+0 0 1 1
+0 0 1 1
+1 1 1 1
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">compress(0, 0, 4)</code> 진입: 전체 영역이 0과 1이 섞여 있으므로 2×2로 4등분한다.</li>
+<li>좌상(0,0): 모두 0이므로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">"0"</code></li>
+<li>우상(0,2): 0과 1이 섞여 있으므로 1×1로 재분할해서 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">"(0011)"</code></li>
+<li>좌하(2,0): 0과 1이 섞여 있으므로 1×1로 재분할해서 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">"(0011)"</code></li>
+<li>우하(2,2): 모두 1이므로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">"1"</code></li>
+<li>결과 조립: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">(0(0011)(0011)1)</code> 이고 예상 출력과 일치한다.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">모든 픽셀이 같은 이미지는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">is_same()</code> 한 번의 검사로 바로 끝나고(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">"0"</code>), 체커보드 패턴처럼 값이 잘게 섞여 있을수록 재귀 호출 횟수가 최대치로 늘어난다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">9. 재귀에서 배운 점</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>재귀는 "같은 작업을 더 작은 입력에 반복 적용"하는 구조이며, <strong>종료 조건(기저 조건)</strong> 이 없으면 무한 재귀에 빠진다.</li>
+<li>"검사 함수(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">is_same</code>)"와 "압축 함수(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">compress</code>)"를 분리하면 각 함수의 책임이 명확해지고 테스트하기 쉬워진다.</li>
+<li>작은 예제(4×4)를 손으로 직접 추적해 보고 예상 결과와 실제 결과를 비교하는 과정이, 재귀처럼 눈으로 흐름을 따라가기 어려운 코드를 이해하는 데 가장 효과적이었다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">10. 퀴즈 오답노트: 자주 헷갈리는 개념</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/0818/0818-%EC%98%A4%EB%8B%B5%EB%85%B8%ED%8A%B8-%EC%9A%94%EC%95%BD.png" alt="퀴즈 오답노트: 자주 헷갈리는 개념" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">퀴즈 오답노트: 자주 헷갈리는 개념</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">데일리 퀘스트와 퀴즈를 풀면서 틀렸거나 헷갈렸던 개념들이다.</p>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">리스트 vs 튜플</h3>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;"></th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">리스트</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">튜플</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">기호</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">[]</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">()</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">가변성</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">가변 (생성 후 수정, 추가, 삭제 가능)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">불변 (생성 후 절대 수정 불가)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">특징</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">자유롭게 변경</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">메모리 소모가 적고 접근 속도가 빠름. 괄호를 생략하고 쉼표만으로도 튜플로 인식됨</td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">all()에 빈 리스트를 넘기면?</h3>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">print(all([]))  # True
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">all()</code>은 내부에 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">False</code>가 <strong>하나도 없을 때</strong> <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">True</code>를 반환한다. 빈 리스트에는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">False</code>가 존재하지 않으므로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">True</code>가 된다. 이 특성 때문에 실무에서는 "빈 데이터인지"를 먼저 확인하는 방어 로직이 필요하다.</p>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">별표 언패킹은 항상 리스트</h3>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">x, *rest = (1, 2, 3, 4)
+print(rest)  # [2, 3, 4]  ← 원본이 튜플이어도 rest는 리스트
+</code></pre>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">f-string 포맷 스펙</h3>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">price = 12000
+print(f&quot;{price:&gt;10,}&quot;)
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">&gt;</code>: 오른쪽 정렬</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">10</code>: 폭(너비)</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">,</code>: 천 단위 구분 기호</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">"12,000"</code>은 6글자이므로 10칸을 채우기 위해 앞에 공백 4칸이 추가되어 오른쪽 정렬된다.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">디버깅용 조절자 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">=</code>도 있다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">score = 95
+print(f&quot;{score=}&quot;)  # score=95  ← 변수 이름과 값을 동시에 출력
+</code></pre>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">return vs yield</h3>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">return</code>: 값을 반환하고 함수를 <strong>완전히 종료</strong>한다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">yield</code>: 값을 반환하면서도 함수의 실행 상태(지역 변수, 실행 위치)를 메모리에 <strong>보존한 채 일시 정지</strong>한다. 다음 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">next()</code> 호출 시 그 지점부터 재개된다. 지연 평가(lazy evaluation)의 핵심 원리다.</li>
+</ul>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">가비지 컬렉션</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">변수가 재할당되어 기존 데이터와의 연결이 끊기면, 이름표를 잃은 데이터는 <strong>가비지 컬렉터</strong>가 자동으로 메모리에서 정리한다. 개발자가 직접 메모리를 해제할 필요가 없다.</p>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">암묵적 형변환 (업캐스팅)</h3>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">정수와 실수를 함께 연산하면, 파이썬은 데이터 손실을 막기 위해 정밀도가 더 높은 실수형으로 타입을 자동 통일한다. 이를 <strong>업캐스팅</strong>, 이러한 자동 변환을 <strong>암묵적 형변환</strong>이라 한다.</p>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">import / from ... import / as 구분</h3>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">import module</code>: 모듈 전체를 가져오며 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">module.함수()</code>로 호출한다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">from module import name</code>: 특정 함수나 클래스만 가져와 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">함수()</code>로 바로 호출한다. (모듈 이름 불필요)</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">import module as alias</code>: 별칭을 부여한다.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">셋을 헷갈려서 "모듈 이름 없이 바로 호출하려면 어떤 키워드를 쓰는가?" 같은 문제에서 자주 틀렸다. 정답은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">from</code>이다.</p>
+</div>

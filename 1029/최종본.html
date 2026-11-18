@@ -1,0 +1,268 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘은 브라우저에서 데이터베이스까지 요청이 흘러가는 과정을 이해하고, <strong>FastAPI로 회원 조회·등록 API</strong>를 만들어 Swagger로 확인했다. 마지막에는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.gitignore</code>를 추가했는데도 변경 목록에 파일이 계속 보이는 이유도 정리했다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>브라우저 요청은 <strong>Uvicorn → FastAPI Route → Python 함수</strong>를 거쳐 JSON 응답으로 돌아온다.</li>
+<li><strong>Path는 "누구?", Query는 "어떤 조건?", Body는 "어떤 데이터를 보낼까?"</strong> 이다.</li>
+<li><strong>404는 "형식은 맞는데 없다", 422는 "형식부터 틀렸다."</strong></li>
+<li>이미 Git이 추적 중인 파일은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.gitignore</code>를 추가해도 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">git rm --cached</code>로 추적을 풀어야 한다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 브라우저부터 데이터베이스까지</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1029/1029-%EC%9A%94%EC%B2%AD-%ED%9D%90%EB%A6%84.png" alt="브라우저부터 데이터베이스까지" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">브라우저부터 데이터베이스까지</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">브라우저가 요청을 보내면 API 서버가 요청을 처리하고, 필요하면 데이터베이스에 질문한 뒤 응답을 돌려준다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-text">Browser → HTTP Request → Uvicorn → FastAPI Route → Python 함수
+                                      ↓ 필요하면
+                                 Database Query
+Browser ← JSON Response ← FastAPI 응답
+</code></pre>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">용어</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>API</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">프로그램끼리 요청과 응답을 주고받는 약속</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>Endpoint</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Method와 URL로 정해지는 API의 한 지점. 예: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">GET /members</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>Uvicorn</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">FastAPI 애플리케이션을 HTTP 서버로 실행</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>FastAPI</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">요청을 적절한 Python 함수에 연결하고 응답을 만드는 도구</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>Swagger UI</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/docs</code>에서 API를 살펴보고 직접 실행해 볼 수 있는 화면</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>cURL</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">터미널에서 HTTP 요청을 보내는 도구. Swagger가 실행한 요청을 cURL 명령으로도 보여준다</td>
+</tr>
+</tbody>
+</table>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 요청 방식과 입력값</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1029/1029-Path-Query-Body.png" alt="요청 방식과 입력값" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">요청 방식과 입력값</figcaption></figure>
+
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>GET</strong>: 주로 데이터를 <strong>조회</strong>할 때 사용한다.</li>
+<li><strong>POST</strong>: 주로 <strong>새 데이터를 보낼 때</strong> 사용한다. 회원 등록처럼 필드가 여러 개면 보통 JSON Request Body를 쓴다.</li>
+</ul>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">입력값</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">위치</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">예시</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">역할</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>Path Parameter</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">URL 경로</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/members/3</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">특정 자원을 가리킴 (<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">3</code>은 회원 ID)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>Query Parameter</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">URL의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">?</code> 뒤</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">?name=kim&amp;min_age=20</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">검색·필터 조건</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>Request Body</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">요청 본문</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">{"name":"Kim","email":"kim@example.com","age":25}</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">새로 만들거나 수정할 데이터</td>
+</tr>
+</tbody>
+</table>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">기억하기: <strong>Path는 "누구?", Query는 "어떤 조건?", Body는 "어떤 데이터를 보낼까?"</strong></p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. FastAPI 서버 실행과 Swagger 확인</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">main.py</code>가 있는 폴더에서 가상환경을 활성화한 뒤 실행한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-powershell">python -m uvicorn main:app --reload --port 8010
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">main:app</code>: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">main.py</code> 파일 안의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">app</code> 객체</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">--reload</code>: 코드를 저장하면 개발 서버가 자동으로 재시작</li>
+<li>서버 실행 중 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">http://127.0.0.1:8010/docs</code>를 열면 Swagger UI가 보인다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">--reload</code> 서버가 켜져 있으면 다시 실행하지 않고, <strong>파일 저장 후 Swagger를 새로고침</strong>하면 된다. 서버가 종료됐다면 실행 명령을 다시 입력한다.</li>
+</ul>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get(&quot;/&quot;)
+def read_root():
+    return {&quot;message&quot;: &quot;Hello FastAPI&quot;}
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 회원 조회 API와 경로 등록 순서</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1029/1029-%EA%B2%BD%EB%A1%9C-%EB%93%B1%EB%A1%9D-%EC%88%9C%EC%84%9C.png" alt="회원 조회 API와 경로 등록 순서" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">회원 조회 API와 경로 등록 순서</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">메모리의 회원 목록을 쓰면 DB 없이 조회 흐름을 연습할 수 있다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">members = [
+    {&quot;id&quot;: 1, &quot;name&quot;: &quot;Kim&quot;, &quot;email&quot;: &quot;kim@example.com&quot;, &quot;age&quot;: 25},
+    {&quot;id&quot;: 2, &quot;name&quot;: &quot;Lee&quot;, &quot;email&quot;: &quot;lee@example.com&quot;, &quot;age&quot;: 19},
+    {&quot;id&quot;: 3, &quot;name&quot;: &quot;Park&quot;, &quot;email&quot;: &quot;park@example.com&quot;, &quot;age&quot;: 31},
+]
+</code></pre>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">Endpoint</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">하는 일</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">GET /members</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">전체 회원 목록</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">GET /members/{member_id}</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">ID로 회원 한 명 조회 (Path Parameter)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">GET /members/search?name=kim</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">이름 검색 (Query Parameter)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">GET /members/filter/?name=k&amp;min_age=20</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">이름과 최소 나이 조건으로 필터링</td>
+</tr>
+</tbody>
+</table>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">min_age=20</code>은 "나이가 <strong>20 이상</strong>"이라는 뜻이다. 19살 회원은 제외되고 20살 회원은 포함된다.</p>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">경로 등록 순서와 슬래시</h3>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/members/search</code> 같은 <strong>고정 경로를 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/members/{member_id}</code>보다 먼저</strong> 등록해야 한다. 순서가 반대이면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">search</code>가 회원 ID로 해석된다.</li>
+<li>코드의 경로와 실제 요청 URL의 <strong>마지막 슬래시(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/</code>)</strong> 도 맞춰야 한다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. 상태 코드와 404 vs 422 구분</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1029/1029-%EC%83%81%ED%83%9C-%EC%BD%94%EB%93%9C-404-vs-422.png" alt="상태 코드와 404 vs 422 구분" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">상태 코드와 404 vs 422 구분</figcaption></figure>
+
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">코드</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">의미</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">예시</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>200</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">조회 요청 성공</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">GET /members</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>201</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">새 데이터 생성 성공</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">POST /members</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>404</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">입력 형식은 맞지만 해당 자원을 찾지 못함</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/members/99</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>422</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">입력값의 타입이나 구조가 약속과 다름</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">정수 ID 자리에 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">abc</code></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>500</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">서버 코드에서 예기치 않은 오류 발생</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">터미널 traceback의 마지막 줄을 확인</td>
+</tr>
+</tbody>
+</table>
+<h3 style="font-size:19px;font-weight:700;color:#1f2937;margin:32px 0 12px;">404 vs 422 구분법</h3>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">{"detail":"Member not found"}</code> → 코드가 회원을 찾지 못해 직접 반환한 <strong>404</strong>.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">loc: ["path", "member_id"]</code>가 포함된 정수 변환 오류 → Path Parameter <strong>검증 실패(422)</strong>.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">한 줄로 정리하면 <strong>404는 "형식은 맞는데 없다", 422는 "형식부터 틀렸다."</strong> 이다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. Pydantic과 POST Request Body</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1029/1029-Pydantic-%EA%B2%80%EC%A6%9D%EA%B3%BC-POST.png" alt="Pydantic과 POST Request Body" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">Pydantic과 POST Request Body</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">Pydantic 모델은 <strong>요청 데이터의 모양과 타입을 정하는 설계도</strong>다. FastAPI는 함수가 실행되기 전에 JSON을 읽어 이 모델에 맞는지 <strong>자동으로 검증</strong>한다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">from fastapi import FastAPI, status
+from pydantic import BaseModel
+
+class MemberCreate(BaseModel):
+    name: str
+    email: str
+    age: int
+
+app = FastAPI()
+
+@app.post(&quot;/members&quot;, status_code=status.HTTP_201_CREATED)
+def create_member(member: MemberCreate):
+    return member
+</code></pre>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">Swagger의 <strong>POST <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/members</code> → Try it out</strong>에서 아래 JSON을 보내면 201과 회원 정보가 응답된다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-json">{
+  &quot;name&quot;: &quot;Hong Gil Dong&quot;,
+  &quot;email&quot;: &quot;hong@example.com&quot;,
+  &quot;age&quot;: 30
+}
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>이 연습 코드에는 DB 저장이 없어서 데이터를 실제로 보관하지는 않는다.</li>
+<li>필수 필드를 빼거나 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">age</code>에 숫자가 아닌 값을 보내면 일반적으로 <strong>422</strong>가 나온다. (TypeScript의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">interface</code>로 데이터 모양을 정하는 것과 비슷한 역할이다.)</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">7. 임의 ID를 응답에 붙이기</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">요청 모델에 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">id</code>를 선언하면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">member.id</code>에 값을 넣을 수 있다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python">import random
+
+class MemberCreate(BaseModel):
+    id: int
+    name: str
+    email: str
+    age: int
+
+@app.post(&quot;/members&quot;, status_code=status.HTTP_201_CREATED)
+def create_member(member: MemberCreate):
+    member.id = random.randint(1, 100)
+    return member
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>Swagger 요청 JSON에 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">id</code>를 <strong>포함해야</strong> 한다 (<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">id</code>가 필수 필드이기 때문).</li>
+<li>서버는 입력된 ID를 난수로 <strong>덮어써서</strong> 응답한다. 이 예시도 DB에 저장하지는 않는다.</li>
+<li>실제 서비스에서는 ID를 클라이언트가 보내지 않고, DB가 자동 생성(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">GENERATED ... AS IDENTITY</code>)하는 것이 맞다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">8. .gitignore와 VS Code의 변경 표시</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.gitignore</code>는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.venv/</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">__pycache__/</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.env</code> 같은 파일을 Git 추적에서 <strong>제외</strong>할 때 쓴다.</li>
+<li><strong>이미 Git이 추적 중인 파일은 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.gitignore</code>를 추가해도 변경 목록에 계속 보인다.</strong> 이럴 때는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">git rm --cached &lt;파일&gt;</code>로 추적만 해제한다. 로컬 파일은 그대로 남는다.</li>
+<li>VS Code Source Control의 표시: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">U</code>는 새 파일(Untracked), <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">D</code>는 삭제된 파일(Deleted).</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">9. 오늘 확인한 실습 결과와 다음에 볼 것</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘 확인한 것은 다음과 같다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>FastAPI 서버를 실행하고 Swagger UI를 열었다.</li>
+<li>전체 회원, 특정 회원, 검색·필터 API의 응답을 확인했다.</li>
+<li>404(없는 회원)와 422(잘못된 타입)를 구분했다.</li>
+<li>POST <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/members</code>로 JSON Body를 보내 201 응답을 확인했다.</li>
+<li>난수 ID를 만들어 응답에 넣는 방식도 살펴봤다.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">다음에 이어서 볼 것은 다음과 같다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>메모리 목록 대신 PostgreSQL에 실제로 저장·조회하기 (오늘 흐름도의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Database Query</code> 구간)</li>
+<li>수정(PUT/PATCH)과 삭제(DELETE) API</li>
+<li>회원이 없을 때 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">HTTPException(404)</code>을 직접 발생시키는 방법</li>
+</ul>
+</div>

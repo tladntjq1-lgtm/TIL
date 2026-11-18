@@ -1,0 +1,171 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘 데일리 퀘스트는 <strong>RAG(Retrieval-Augmented Generation)</strong> 파이프라인이었다. 5문항 중 2문항을 틀렸는데, 틀린 이유가 "개념이 헷갈려서"와 "문제를 거꾸로 읽어서"였다. 개념 정리와 오답노트를 함께 남겨 둔다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>RAG는 모델이 답하기 전에 <strong>관련 문서를 찾아서 참고 자료로 붙여 주는</strong> 방식이다.</li>
+<li>5단계는 두 구간으로 나뉜다. <strong>인덱싱(수집, 분할, 임베딩·저장)은 질문 전</strong>, <strong>질의(검색, 생성)는 질문 즉시</strong> 일어난다.</li>
+<li><strong>임베딩은 "변환"</strong>, <strong>리트리버는 "찾아오기"</strong> 다.</li>
+<li>"해당하지 않는 것"을 묻는 부정 문제는 <strong>부정 표현에 먼저 표시</strong>한다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. RAG는 5단계, 두 구간으로 나뉜다</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1117a/1117-RAG-5%EB%8B%A8%EA%B3%84%EC%99%80-%EB%91%90-%EA%B5%AC%EA%B0%84.png" alt="RAG는 5단계, 두 구간으로 나뉜다" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">RAG는 5단계, 두 구간으로 나뉜다</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">RAG는 모델이 답하기 전에 관련 문서를 찾아서 참고 자료로 붙여 주는 방식이다. 전체 흐름은 다음과 같다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-text">[인덱싱 단계: 질문이 생기기 전에 미리 해두는 사전 작업 (배치)]
+ ① 문서 수집(Loading) → ② 문서 분할(Chunking) → ③ 임베딩 및 저장(Embedding &amp; Storing)
+
+[질의 단계: 사용자가 질문을 입력한 즉시 실행되는 실시간 작업]
+ ④ 검색(Retrieval) → ⑤ 생성(Generation)
+</code></pre>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">구간</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">단계</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">언제</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">하는 일</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">인덱싱</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">① 수집</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">사전</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">문서를 불러온다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">인덱싱</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">② 분할</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">사전</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">문서를 작은 조각(청크)으로 자른다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">인덱싱</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">③ 임베딩·저장</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">사전</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">청크를 벡터로 바꿔 벡터 저장소에 보관한다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">질의</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">④ <strong>검색</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>질문 즉시</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">질문과 가장 비슷한 청크를 찾아온다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">질의</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">⑤ 생성</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>질문 즉시</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">찾은 청크를 참고해 답변을 만든다</td>
+</tr>
+</tbody>
+</table>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">한 줄 기억법: <strong>도서관 사서 비유.</strong> ①~③은 책을 사 와서(수집) 챕터별로 나누고(분할) 색인 카드를 만들어 서가에 꽂아 두는 일(임베딩·저장)이다. ④~⑤는 손님이 질문하면 서가에서 책을 찾아오고(검색) 그걸 보고 답해 주는 일(생성)이다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 텍스트 분할과 chunk_overlap</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1117a/1117-chunk_overlap-%EA%B2%B9%EC%B9%A8.png" alt="텍스트 분할과 chunk_overlap" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">텍스트 분할과 chunk_overlap</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">문서를 일정 크기로 자르면 문장이나 핵심 정보가 <strong>중간에서 잘릴 수</strong> 있다. 이를 막으려고 앞뒤 청크가 <strong>일부 겹치도록</strong> 설정하는 값이 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">chunk_overlap</code>이다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python"># 개념 이해용 예시 (LangChain 방식)
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=200,      # 청크 하나의 최대 길이
+    chunk_overlap=20,    # 인접한 청크가 겹치는 길이 (문맥 유실 방지)
+)
+chunks = splitter.split_documents(documents)
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">chunk_size</code>는 한 조각의 크기, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">chunk_overlap</code>은 이웃 조각과 겹치는 길이다.</li>
+<li>교안 실습 코드에서는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">chunk_overlap=20</code>으로 설정해 문맥 유실을 방지했다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. 임베딩 vs 리트리버: 이름이 비슷해서 헷갈린다</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1117a/1117-%EC%9E%84%EB%B2%A0%EB%94%A9%EA%B3%BC-%EB%A6%AC%ED%8A%B8%EB%A6%AC%EB%B2%84-%EB%B9%84%EA%B5%90.png" alt="임베딩 vs 리트리버: 이름이 비슷해서 헷갈린다" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">임베딩 vs 리트리버: 이름이 비슷해서 헷갈린다</figcaption></figure>
+
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">용어</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">정체</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">단계</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>임베딩(Embedding)</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">텍스트를 <strong>벡터(숫자 목록)</strong> 로 바꾸는 일</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">③ 인덱싱</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>리트리버(Retriever)</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">벡터 저장소에서 질문과 가장 유사한 청크를 <strong>찾아오는 검색기</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">④ 질의</td>
+</tr>
+</tbody>
+</table>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python"># 개념 이해용 예시
+retriever = vector_store.as_retriever(search_kwargs={&quot;k&quot;: 3})   # k = 가져올 청크 개수
+docs = retriever.invoke(&quot;질문 내용&quot;)
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>교안 실습에서는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">vector_store.as_retriever()</code>로 리트리버를 만들고 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">k</code>값으로 검색할 청크 개수를 지정했다. 위 코드는 개념 이해용 예시라 실제 교안 코드와 인자 모양이 다를 수 있다.</li>
+<li>문제에 "<strong>가져오는/찾아오는</strong> 검색기"라는 말이 나오면 리트리버, "<strong>벡터로 변환</strong>"이면 임베딩이다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 병목 현상: 어느 단계가 문제인가</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1117a/1117-RAG-%EB%B3%91%EB%AA%A9-%EB%8B%A8%EA%B3%84-%EC%B0%BE%EA%B8%B0.png" alt="병목 현상: 어느 단계가 문제인가" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">병목 현상: 어느 단계가 문제인가</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">RAG 답변이 이상할 때는 <strong>어느 단계에서 막혔는지</strong> 나눠서 본다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">상황</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">문제 단계</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">올바른 문서가 검색되었는데도 모델이 <strong>무시하고 지어낸다</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>생성 단계</strong> (지시 불이행, 환각)</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">필요한 문서 자체를 못 찾아온다</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">검색 단계 (또는 그 앞의 수집·분할·임베딩)</td>
+</tr>
+</tbody>
+</table>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">3번 문제처럼 "검색기가 <strong>올바른 문서를 찾아 전달했는데도</strong>" 틀렸다면 검색은 이미 성공한 것이다. 남는 곳은 생성 단계다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. 오답노트</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1117a/1117-%EC%98%A4%EB%8B%B5%EB%85%B8%ED%8A%B8-%EC%A0%95%EB%A6%AC.png" alt="오답노트" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">오답노트</figcaption></figure>
+
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">문항</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">내가 고른 것</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">정답</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">틀린 이유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">1. 인덱싱 단계에 <strong>해당하지 않는 것</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">임베딩 및 저장</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>검색(Retrieval)</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>부정 문제를 거꾸로 읽음.</strong> 임베딩·저장은 인덱싱 단계가 맞다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">5. 연관성 높은 청크를 가져오는 검색기</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">임베딩</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>리트리버(Retriever)</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">임베딩(변환)과 리트리버(검색기)를 혼동</td>
+</tr>
+</tbody>
+</table>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>1번</strong>: 인덱싱은 수집·분할·임베딩/저장(질문 <strong>전</strong>)이고, 검색은 질의 단계(질문 <strong>후</strong>)다. 내가 고른 "임베딩 및 저장"은 인덱싱에 <strong>포함되는</strong> 단계였다. 11월 2일, 11월 3일에 이어 <strong>"해당하지 않는 것/옳지 않은 것" 문제를 놓친 것이 벌써 네 번째</strong>다. 이제 습관으로 고정해야 한다. 문제를 읽자마자 <strong>부정 표현에 동그라미</strong>를 치고, 선지마다 "이건 맞는가?"를 판단한 뒤 <strong>틀린 것 하나</strong>만 고른다.</li>
+<li><strong>5번</strong>: 임베딩은 "변환", 리트리버는 "찾아오기"다. 단계로 구분하면 임베딩은 ③(사전), 리트리버는 ④(질의)다.</li>
+<li>맞힌 문제: 2번(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">chunk_overlap</code>), 3번(생성 단계 병목), 4번(질의 단계 = 실시간 검색 + 생성).</li>
+</ul>
+</div>
