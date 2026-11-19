@@ -1,0 +1,167 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘 데일리 퀘스트는 5문항 중 4문항이 정답이었다. RAG 인덱싱 단계의 두 번째 칸인 <strong>문서 분할</strong>을 자세히 다뤘다. 문서를 왜 쪼개는지, 어떤 분할기를 쓰는지, 청크 경계에서 문맥이 끊기지 않게 하는 설정과 청크를 담는 그릇인 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Document</code>까지 정리한다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>청킹</strong>은 긴 문서를 일정한 크기의 조각(청크)으로 나누는 전처리다. 임베딩을 없애는 것이 아니라 임베딩이 잘 되도록 돕는 앞 단계다.</li>
+<li><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">RecursiveCharacterTextSplitter</code></strong> 는 문단, 문장, 공백 순으로 구분자를 시도해서 의미가 덜 잘리게 자르는 LangChain의 범용 표준 분할기다.</li>
+<li><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">chunk_overlap</code></strong> 은 앞 청크의 끝부분을 다음 청크의 시작에 겹쳐 넣어 경계의 문맥 단절을 막는 설정값이다.</li>
+<li><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Document</code></strong> 는 본문(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">page_content</code>)과 부가 정보(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">metadata</code>)를 한 객체로 묶는 LangChain의 표준 클래스다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 청킹이 필요한 이유</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1119/1119-%EC%B2%AD%ED%82%B9%EC%9D%B4-%ED%95%84%EC%9A%94%ED%95%9C-%EC%9D%B4%EC%9C%A0.png" alt="청킹이 필요한 이유" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">청킹이 필요한 이유</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>청킹(Chunking)</strong> 은 긴 문서를 일정한 크기의 조각(청크)으로 나누는 전처리 과정이다. 필요한 기술적 배경은 세 가지다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">이유</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>입력 창 크기 한계</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">언어 모델과 임베딩 모델은 한 번에 받을 수 있는 최대 토큰 수가 정해져 있다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>의미 선명도 유지</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">너무 긴 문서를 통째로 임베딩하면 여러 주제가 섞여 벡터의 의미 표현력이 약해진다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>검색 효율성</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">질문과 관련 높은 핵심 문단만 골라 전달하면 응답 속도와 정확도가 올라간다</td>
+</tr>
+</tbody>
+</table>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>청킹은 임베딩을 없애지 않는다.</strong> 청크로 나눠도 각 청크는 임베딩 과정을 그대로 거친다. 청킹은 임베딩이 <strong>잘 수행되도록 돕는</strong> 앞 단계다. "임베딩 과정이 생략된다"는 설명이 청킹의 필요성으로 <strong>적절하지 않은</strong> 선지였다.</p>
+</blockquote>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 텍스트 분할 방식 비교</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1119/1119-%ED%85%8D%EC%8A%A4%ED%8A%B8-%EB%B6%84%ED%95%A0-%EB%B0%A9%EC%8B%9D-%EB%B9%84%EA%B5%90.png" alt="텍스트 분할 방식 비교" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">텍스트 분할 방식 비교</figcaption></figure>
+
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">방식</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">동작</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">특징</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">CharacterTextSplitter</code> (고정 크기 분할)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">글자 수로만 자름</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">문맥을 무시한다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">RecursiveCharacterTextSplitter</code></strong> (재귀적 문자 분할)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>문단 → 문장 → 공백</strong> 순으로 구분자를 단계적으로 적용</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">의미 단위를 최대한 보존하는 <strong>LangChain의 범용 표준 분할기</strong></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Semantic Chunking (의미론적 분할)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>임베딩 유사도</strong>를 기준으로 나눔</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">의미가 바뀌는 지점에서 자른다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Metadata Filtering (메타데이터 필터링)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">분할 방식이 <strong>아니라</strong> 검색 범위를 좁히는 기법</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">출처, 연도 같은 정보로 후보를 거른다</td>
+</tr>
+</tbody>
+</table>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>한 줄 기억법: <strong>재귀적 분할 = 큰 구분자부터 차례로 시도해서 의미가 덜 잘리게 자르는 방식.</strong></li>
+<li>메타데이터 필터링은 이름에 "분할"이 없다. 분할기가 아니라 <strong>검색 쪽 도구</strong>다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. chunk_overlap: 이름까지 정확히</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1119/1119-chunk_overlap-%EA%B2%B9%EC%B9%98%EB%8A%94-%EA%B5%AC%EA%B0%84.png" alt="chunk_overlap: 이름까지 정확히" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">chunk_overlap: 이름까지 정확히</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">청크와 청크의 경계에서 문맥이 끊기지 않도록, <strong>앞 청크의 끝부분을 다음 청크의 시작 부분에 중복해서 넣는</strong> 설정값이 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">chunk_overlap</code>이다. 교안 실습에서는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">chunk_overlap=10</code>으로 설정했을 때 앞 청크의 끝부분이 다음 청크 앞에 중복되어 나타났다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python"># 개념 이해용 예시 (LangChain)
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=100,      # 청크 하나의 최대 길이
+    chunk_overlap=10,    # 앞 청크의 끝 10글자를 다음 청크의 앞에 중복 (문맥 단절 방지)
+)
+chunks = splitter.split_text(long_text)
+</code></pre>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">설정값</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">chunk_size</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">청크 하나의 크기</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">chunk_overlap</code></strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">이웃한 청크가 겹치는 길이</td>
+</tr>
+</tbody>
+</table>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. Document: 본문과 부가 정보를 한 객체로</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1119/1119-Document-%EB%B3%B8%EB%AC%B8%EA%B3%BC-%EB%A9%94%ED%83%80%EB%8D%B0%EC%9D%B4%ED%84%B0.png" alt="Document: 본문과 부가 정보를 한 객체로" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">Document: 본문과 부가 정보를 한 객체로</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">LangChain에서 <strong>본문 텍스트(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">page_content</code>)와 출처, 연도 같은 부가 정보(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">metadata</code>)를 하나로 묶는 표준 클래스</strong>가 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Document</code>다.</p>
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-python"># 개념 이해용 예시
+from langchain_core.documents import Document
+
+doc = Document(
+    page_content=&quot;청킹은 긴 문서를 일정한 크기의 조각으로 나누는 전처리 과정이다.&quot;,
+    metadata={&quot;source&quot;: &quot;교안 5장&quot;, &quot;page&quot;: 3},
+)
+doc.page_content   # 청킹된 본문 텍스트
+doc.metadata       # 출처, 페이지, 카테고리 등 부가 정보 (딕셔너리)
+</code></pre>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">page_content</code> = 본문 / <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">metadata</code> = 딕셔너리 형태의 부가 정보.</li>
+<li>본문과 메타데이터를 <strong>일체형</strong>으로 관리할 수 있어서, 검색 결과에 출처를 함께 붙이거나 메타데이터로 검색 범위를 좁힐 수 있다.</li>
+<li>비유: <strong>책(본문)과 책 뒤에 붙은 도서 카드(출처, 페이지)를 한 묶음으로</strong> 들고 다니는 것.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. temperature=0 복습</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">RAG에서 LLM이 사실에만 근거해 무작위성이 적은 답을 하도록 할 때는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">temperature=0</code>이다. 1.5, 2.0, 10처럼 값이 커질수록 답변의 창의성과 무작위성이 커져서 사실 기반 응답에는 맞지 않는다. 어제 정리한 내용이 그대로 한 문제로 나왔고 맞혔다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. RAG 인덱싱 흐름에서의 위치</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1119/1119-RAG-%EC%9D%B8%EB%8D%B1%EC%8B%B1-%EC%86%8D-%EC%B2%AD%ED%82%B9-%EC%9C%84%EC%B9%98.png" alt="RAG 인덱싱 흐름에서의 위치" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">RAG 인덱싱 흐름에서의 위치</figcaption></figure>
+
+<pre style="background:#0f172a;color:#e5e7eb;padding:16px;border-radius:8px;overflow-x:auto;margin:0 0 20px;font-size:14px;line-height:1.6;"><code class="language-text">문서 수집 → [문서 분할: RecursiveCharacterTextSplitter, chunk_overlap]
+          → 각 청크를 Document(page_content, metadata)로 관리
+          → 임베딩 → 벡터 저장소
+</code></pre>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">7. 오답노트</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">이날 퀘스트는 5문항 중 4문항 정답이었다. 맞힌 문제는 1번(청킹의 필요성), 2번(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">RecursiveCharacterTextSplitter</code>), 4번(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">temperature=0</code>)이다. 틀린 문제는 두 개다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">문항</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">내가 쓴 답</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">정답</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">틀린 이유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">3. 경계 문맥 단절 방지 설정값</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">overlap</code></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">chunk_overlap</code></strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">개념은 맞지만 <strong>파라미터 이름</strong>이 정확하지 않았다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">5. page_content와 metadata를 묶는 클래스</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">?</code> (모름)</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Document</code></strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">클래스 이름을 몰랐다</td>
+</tr>
+</tbody>
+</table>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>3번</strong>: 단답형은 코드에 쓰는 <strong>정확한 이름</strong>까지 외워야 한다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">chunk_size</code>와 짝으로 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">chunk_overlap</code>.</li>
+<li><strong>5번</strong>: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">Document</code> = <strong>page_content(본문) + metadata(출처 등)</strong>. "본문과 부가 정보를 한 객체로"라는 문장으로 기억한다.</li>
+<li><strong>좋은 점</strong>: 1번은 <strong>"가장 적절하지 않은 것"</strong> 이라는 부정 문제였는데 올바르게 읽고 거짓 선지(임베딩 생략)를 골랐다. 지난 4번의 반복 실수가 이번에는 나오지 않았다.</li>
+</ul>
+</div>
