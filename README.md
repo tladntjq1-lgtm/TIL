@@ -80,6 +80,7 @@ Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 
 ## 🚀 Projects
 
 - [출석 키오스크 + 얼굴 인식 시스템](projects/attendance-kiosk-face-recognition.md)
+- [Brother RAG Agent 프로젝트 1일차 (하이브리드 검색, 거부 판정, FastAPI 서버 골격)](projects/brother-rag-agent-01-kickoff.md)
 
 ## 🤖 AI와 함께 공부하기
 
