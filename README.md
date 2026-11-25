@@ -81,6 +81,9 @@ Python 기초부터 SQL/PostgreSQL, Pandas 데이터 분석, Git/GitHub 협업, 
 
 - [출석 키오스크 + 얼굴 인식 시스템](projects/attendance-kiosk-face-recognition.md)
 - [Brother RAG Agent 프로젝트 1일차 (하이브리드 검색, 거부 판정, FastAPI 서버 골격)](projects/brother-rag-agent-01-kickoff.md)
+- [Brother RAG Agent 프로젝트 2~4일차 (인수인계 문서, 응답 규격 검증, 첫 공식 제출)](projects/brother-rag-agent-02-handoff-and-first-submission.md)
+- [Brother RAG Agent 프로젝트 5일차 (지표 자동화, 캐시 키, 클라우드 배포)](projects/brother-rag-agent-03-metrics-cache-and-cloud.md)
+- [Brother RAG Agent 프로젝트 6일차 (유료 Vercel 자동 배포, 대시보드)](projects/brother-rag-agent-04-vercel-auto-deploy-and-dashboard.md)
 
 ## 🤖 AI와 함께 공부하기
 
