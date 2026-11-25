@@ -1,0 +1,71 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">Brother RAG Agent 프로젝트의 2일차(11/21)부터 4일차(11/23)까지를 한 편으로 묶어 정리한다. 첫 공식 제출일인 11/23에 내가 자리를 비우게 되어서, 2일차에는 혼자서도 따라 할 수 있는 인수인계 문서를 만들었다. 3일차에는 응답의 usage 규격을 검증했고, 4일차에는 그 문서 덕분에 팀이 나 없이 첫 공식 제출을 끝냈다. 그리고 그 과정에서 지금 구조의 위험도 보였다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>기간: 2026-11-21 ~ 2026-11-23</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>인수인계 문서는 "무엇을 하라"보다 <strong>"이렇게 보이면 성공"</strong> 이 있어야 혼자 따라 할 수 있다.</li>
+<li>응답의 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">usage</code>는 <strong>정상·거부·오류 응답 모두</strong>에서 검증하고, <strong>실패한 호출도 이미 쓴 만큼</strong> 기록한다.</li>
+<li><strong>"PC + 터널" 구조는 PC가 꺼지면 평가 전체가 실패</strong>한다. 이 위험이 11/24 클라우드 배포로 이어졌다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 2일차: 인수인계 문서 작성</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1121/1121-%EC%9D%B8%EC%88%98%EC%9D%B8%EA%B3%84-9%EB%8B%A8%EA%B3%84%EC%99%80-%EC%84%B1%EA%B3%B5-%EA%B8%B0%EC%A4%80.png" alt="2일차: 인수인계 문서 작성" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">2일차: 인수인계 문서 작성</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">첫 공식 제출일(11/23)에 자리를 비우게 되어, <strong>혼자 따라 할 수 있는 인수인계 문서</strong> <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">docs/handoff_C_to_A.md</code>를 작성했다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>서버 실행 → 터널 → 포털 제출 → DEV 평가</strong>의 흐름을 <strong>9단계 체크리스트</strong>로 정리했다.</li>
+<li>단계마다 <strong>성공 기준</strong>을 넣었다.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>배운 것</strong></p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>인수인계 문서는 "무엇을 하라"보다 <strong>"이렇게 보이면 성공"</strong> 이 있어야 혼자 따라 할 수 있다.</li>
+<li>모든 절차를 <strong>직접 실행해서 실제 응답을 문서에 붙여 두면</strong> 화면과 비교하기 쉽다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 3일차: 응답 규격 검증</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1121/1121-%EC%9D%91%EB%8B%B5-%EC%A2%85%EB%A5%98%EB%B3%84-usage-%EA%B2%80%EC%A6%9D.png" alt="3일차: 응답 규격 검증" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">3일차: 응답 규격 검증</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">응답의 <strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">usage</code></strong>(공식 모델명, 입력·출력·총 토큰) 규격을 <strong>정상·거부·오류 응답 모두</strong>에서 검증했다. (#43)</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">응답 종류</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">usage</code> 검증</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">정상 응답</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">검증함</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">거부 응답</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">검증함</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">오류 응답</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">검증함 (실패한 호출도 이미 쓴 만큼)</td>
+</tr>
+</tbody>
+</table>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>배운 것</strong></p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>토큰 사용량은 <strong>생성 호출만이 아니라 실패한 호출까지 이미 쓴 만큼</strong> 기록해야 한다.</li>
+<li><strong>임베딩 호출은 따로 구분</strong>한다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. 4일차: 첫 공식 제출과 PC + 터널 구조의 위험</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1121/1121-PC-%ED%84%B0%EB%84%90-%EC%9C%84%ED%97%98%EA%B3%BC-%ED%81%B4%EB%9D%BC%EC%9A%B0%EB%93%9C-%EB%B0%B0%ED%8F%AC.png" alt="4일차: 첫 공식 제출과 PC + 터널 구조의 위험" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">4일차: 첫 공식 제출과 PC + 터널 구조의 위험</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">11/23은 내가 자리를 비운 날이다. <strong>팀이 인수인계 문서로 서버와 터널을 띄워</strong> 첫 공식 제출을 진행했다.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>배운 것</strong></p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>미리 써 둔 체크리스트 덕분에</strong> 담당자가 없어도 제출이 돌아갔다.</li>
+<li>반대로 <strong>"PC + 터널" 구조는 PC가 꺼지면 평가 전체가 실패</strong>한다는 위험이 보였다. 이것이 11/24 <strong>클라우드 배포</strong>로 이어졌다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>인수인계 문서의 핵심은 <strong>성공 기준과 실제 응답 예시</strong>다.</li>
+<li>응답 규격은 <strong>정상·거부·오류 모두</strong>에서 검증한다.</li>
+<li>로컬 PC에 의존하는 구조는 <strong>단일 실패 지점</strong>이 된다.</li>
+</ul>
+</div>

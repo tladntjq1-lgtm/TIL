@@ -1,0 +1,140 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">오늘은 Brother RAG Agent 프로젝트 6일차다. 공식 점수 문항을 PDF 원문과 다시 대조하고, 서버를 유료 Vercel 팀으로 옮겨 <strong>main에 머지하면 자동으로 배포되는 구조</strong>를 완성했다. 대시보드 시안도 반영했다. 이 글에는 한 일과 함께, 배포하면서 막혔던 곳과 그때 쓴 구분 방법을 정리해 둔다. 이전 글은 5일차(지표, 캐시, 클라우드)다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>서버는 <strong>main 머지 = 자동 배포</strong> 구조가 됐고, <strong>BM25 색인은 Supabase 표에 올려 두었다가 서버가 처음 켜질 때 받아 온다</strong>.</li>
+<li>배포 오류가 나면 <strong>같은 커밋을 같은 설정으로 로컬에서 돌려</strong> 코드 문제인지 환경 문제인지 먼저 나눈다.</li>
+<li><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/agent/invoke</code> 오류는 <strong>DB 주소 값 오류 → 비밀번호 인증 실패 → OpenAI 401</strong> 순서로 3번 이어졌고, <strong>서버가 DB를 먼저 읽고 OpenAI를 부른다</strong>는 호출 순서가 원인을 가르는 단서가 됐다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 오늘 한 일</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>공식 #39(95.90점) 30문항을 <strong>PDF 원문과 대조해 재검증</strong>하고, 손실 문항(07, 16, 20, 23)의 원인을 분석했다.</li>
+<li><strong>답변 제어 문자 제거</strong>: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">*51</code> 같은 코드가 깨지던 문제를 고쳤다. (#139)</li>
+<li><strong>유료 Vercel 팀으로 이전</strong>하고 <strong>main 머지 = 자동 배포</strong> 구조를 완성했다. (#148, #152, #153)</li>
+<li><strong>대시보드 시안 반영</strong> (#150): 공식 제출 판정, PDF 대조, 정답 쪽 순위, 문항 테스트 세트 카드, 3회 다수결, 한 문항 물어보기, 위쪽 메뉴.</li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">운영 서버로 확인한 결과는 다음과 같다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">항목</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">문항</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">44문항 <strong>39/39</strong></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">정상 거부</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>4/4</strong></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">오답</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>0</strong></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">P95</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>8.4초</strong></td>
+</tr>
+</tbody>
+</table>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. main 머지 = 자동 배포 구조</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1125/1125-main-%EB%A8%B8%EC%A7%80-%EC%9E%90%EB%8F%99-%EB%B0%B0%ED%8F%AC-%EA%B5%AC%EC%A1%B0.png" alt="main 머지 = 자동 배포 구조" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">main 머지 = 자동 배포 구조</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">유료 Vercel 팀으로 옮기면서 <strong>main 브랜치에 머지하면 곧바로 배포되는 구조</strong>를 만들었다. 여기에 한 가지 설계가 더해졌다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>BM25 색인을 Supabase 표에 올린다.</strong></li>
+<li><strong>서버가 처음 켜질 때 그 색인을 받아 온다.</strong></li>
+</ul>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">색인은 DB 표에 올려 두고, 서버는 시작할 때 그것을 가져다 쓴다. 나중에 색인을 바꿀 때도 새 색인을 Supabase에 올리고 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">INDEX_VERSION</code>을 교체한다. (다음에 할 일 참고)</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. 배포 오류를 구분하는 순서</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1125/1125-%EB%B0%B0%ED%8F%AC-%EC%98%A4%EB%A5%98-%EA%B5%AC%EB%B6%84-%EC%88%9C%EC%84%9C.png" alt="배포 오류를 구분하는 순서" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">배포 오류를 구분하는 순서</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">배포가 실패하거나 서버가 이상하게 동작할 때 가장 먼저 한 일은 <strong>같은 커밋을 같은 설정으로 로컬에서 돌려 보는 것</strong>이다. 그래야 코드 문제인지 환경 문제인지 나뉜다.</p>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">개념 이해용: 로컬에서도 같은 오류가 나면 코드 쪽을, 로컬에서는 정상인데 배포에서만 나면 환경 쪽을 의심한다는 뜻으로 정리했다.</p>
+</blockquote>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>이번에 만난 빌드 실패 2건</strong></p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">증상</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">해결</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">프리셋이 Other라서 함수를 못 찾았다</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">framework: fastapi</code>로 지정</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">루트 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">requirements</code>(streamlit 포함)를 설치해서 549MB가 됐다</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>서버용 패키지만 설치</strong></td>
+</tr>
+</tbody>
+</table>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;"><strong>배포 과정에서 얻은 규칙들</strong></p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>로그가 잘리면 원인을 못 본다.</strong> 오류만 따로 남기되 <strong>비밀값은 가린다</strong>.</li>
+<li><strong>환경변수는 바꾸면 Redeploy를 해야 적용된다.</strong></li>
+<li><strong>Vercel 권한</strong>: Developer 역할은 Production 환경변수와 프로덕션 CLI 배포가 안 된다. 관리자(튜터)에게 <strong>정확히 무엇을 요청할지 목록으로</strong> 정리해서 전달하면 빠르다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. /agent/invoke 오류 3연속과 호출 순서</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1125/1125-invoke-%EC%98%A4%EB%A5%98-3%EC%97%B0%EC%86%8D%EA%B3%BC-%ED%98%B8%EC%B6%9C-%EC%88%9C%EC%84%9C.png" alt="/agent/invoke 오류 3연속과 호출 순서" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">/agent/invoke 오류 3연속과 호출 순서</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">배포한 뒤 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/agent/invoke</code>가 <strong>3번 연속으로 다른 오류</strong>를 냈다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">순서</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">원인</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">1</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">DB 주소 값 오류</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">2</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">비밀번호 인증 실패</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">3</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">OpenAI 401</td>
+</tr>
+</tbody>
+</table>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">로그로 하나씩 원인을 짚어서 튜터에게 <strong>정확히 요청</strong>했고, 그렇게 해결했다.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">여기서 도움이 된 것이 호출 순서다. <strong>서버는 DB를 먼저 읽고 OpenAI를 부른다.</strong> 이 순서를 이용해서, OpenAI 오류가 남아 있는 상태에서도 <strong>DB 쪽이 해결된 것을 따로 확인</strong>할 수 있었다. </p>
+<blockquote style="margin:0 0 16px;padding:12px 16px;border-left:4px solid #2563eb;background:#eff6ff;color:#1f2937;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">개념 이해용: 호출 순서가 DB, OpenAI 순이므로 OpenAI 오류가 보이면 DB 단계는 이미 지나간 것으로 읽을 수 있다.</p>
+</blockquote>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">DB 주소를 전달하다가 얻은 규칙도 하나 있다. 비밀번호가 든 DB 주소를 메신저로 보내면 링크로 바뀌면서 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">%</code> 인코딩이 달라질 수 있다. 그래서 <strong>파일로 전달</strong>한다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. 그 밖에 배운 것</h2>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">주제</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">배운 점</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>API 서버 주소</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">브라우저로 열면 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">{"detail":"Not Found"}</code>가 <strong>정상</strong>이다. 화면이 아니라 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/health</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/agent/invoke</code>만 있다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>Streamlit 메뉴</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">pages/</code> 폴더가 있으면 옛 사이드바 메뉴를 자동으로 만든다. 위쪽 메뉴를 쓰려면 <strong>다른 폴더 이름</strong>을 쓴다</td>
+</tr>
+</tbody>
+</table>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 다음에 할 일</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>doc2query(색인 단계에서 사용자 표현 생성) 결과가 나오면 <strong>254 + 표·그림 사용자형 50</strong>으로 회귀를 확인한다.</li>
+<li>채택되면 새 색인을 Supabase에 올리고 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">INDEX_VERSION</code>을 교체한 뒤 <strong>44문항을 재검증</strong>한다.</li>
+</ul>
+</div>

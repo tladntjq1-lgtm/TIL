@@ -1,0 +1,98 @@
+<div style="max-width:760px;margin:0 auto;font-family:'Malgun Gothic',sans-serif;">
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">프로젝트 5일차에는 평가를 사람 손에서 코드로 옮기는 일, 답변 캐시, 클라우드 배포 묶음, 그리고 공식 제출 결과(#30)의 오거부 원인 추적을 했다. 이 글에는 오늘 한 일과 함께, 새로 배운 점과 막혔던 곳을 정리해 둔다. 이전 글에서는 2~4일차의 인수인계와 첫 제출을 다뤘다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">오늘의 한 줄 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>평가는 <strong>자동 계산 + 회귀 비교</strong>로 해야 버전 간 비교가 가능하다.</li>
+<li>캐시는 <strong>키에 넣는 값이 곧 정확성</strong>이다.</li>
+<li>오거부처럼 보여도 원인은 <strong>검색 단계</strong>일 수 있다. 생성 단계만 보지 않는다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">1. 오늘 한 일</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li><strong>eval/metrics.py</strong>: 실행 로그와 정답표로 Hit@5, Evidence, Answer, Abstention, False Answer, P95, 토큰을 자동으로 계산한다. (#94)</li>
+<li><strong>eval/compare_runs.py</strong>: 제출 전 회귀 비교. 나빠진 문항과 좋아진 문항을 보여 준다. (#103)</li>
+<li><strong>Streamlit 시연 화면</strong>과 <strong>평가 결과 페이지</strong>를 만들었다. (#104, #110)</li>
+<li><strong>답변 캐시 + 리라이트 스위치</strong>를 넣고, 캐시와 리라이트의 4가지 조합을 실험했다. (#129)</li>
+<li>Supabase 팀 계정에 맞게 <strong>DB_SCHEMA 설정</strong>을 추가했다. (#128)</li>
+<li><strong>Vercel 배포 묶음</strong>을 만들었다. 44문항 39/39. (#131)</li>
+<li>공식 #30(79.29점)의 <strong>오거부 원인 실험</strong>을 했다. 오거부 4건을 추적하고, 형제 청크 확장을 시도했다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">2. 지표 자동 계산과 회귀 비교</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1124/1124-%EC%A7%80%ED%91%9C-%EC%9E%90%EB%8F%99-%EA%B3%84%EC%82%B0%EA%B3%BC-%ED%9A%8C%EA%B7%80-%EB%B9%84%EA%B5%90.png" alt="지표 자동 계산과 회귀 비교" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">지표 자동 계산과 회귀 비교</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">지금까지는 손으로 채점해서 버전끼리 비교하기가 어려웠다. 그래서 실행 로그와 정답표를 넣으면 지표가 자동으로 나오게 했다. 계산하는 지표는 Hit@5, Evidence, Answer, Abstention, False Answer, P95, 토큰이다.</p>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>자동 계산이 믿을 만한지 확인하려고, <strong>예전 로그로 다시 계산해서 손 채점과 같은지 검증</strong>했다.</li>
+<li>제출하기 전에는 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">compare_runs.py</code>로 <strong>회귀 비교</strong>를 한다. 이전 실행과 비교해서 나빠진 문항과 좋아진 문항을 보여 준다.</li>
+</ul>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">3. 캐시 키에 넣어야 하는 값</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1124/1124-%EC%BA%90%EC%8B%9C-%ED%82%A4%EC%97%90-%EB%84%A3%EB%8A%94-%EA%B0%92.png" alt="캐시 키에 넣어야 하는 값" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">캐시 키에 넣어야 하는 값</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">답변 캐시의 키에는 질문만 넣으면 안 된다. 아래 값까지 함께 넣어야 한다.</p>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">키에 넣는 값</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">질문</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">기본 값이다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">제품 코드</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">모델만 다른 질문(T830와 T835)을 구분한다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">설정</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">키에 함께 넣는다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">동의어 파일 해시</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">키에 함께 넣는다</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">커밋</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">코드가 바뀐 뒤를 구분한다</td>
+</tr>
+</tbody>
+</table>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">이렇게 해야 <strong>모델만 다른 질문이나 코드 변경 후에 옛 답을 돌려주지 않는다.</strong> 그래서 캐시는 키에 넣는 값이 곧 정확성이라고 정리했다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">4. 오거부의 원인은 검색 순위</h2>
+<figure style="margin:0 0 24px;text-align:center;"><img src="https://raw.githubusercontent.com/tladntjq1-lgtm/TIL/blog-assets/1124/1124-%EC%98%A4%EA%B1%B0%EB%B6%80%EC%9D%98-%EC%9B%90%EC%9D%B8.png" alt="오거부의 원인은 검색 순위" style="max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:8px;" /><figcaption style="font-size:14px;color:#6b7280;margin-top:8px;">오거부의 원인은 검색 순위</figcaption></figure>
+
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">공식 #30(79.29점)에서 오거부가 4건 있었고, 원인을 추적했다. 원인은 "생성 판단"이 아니라 <strong>생성 모델이 받은 상위 5개 발췌에 답이 없는 것</strong>이었다. 즉 <strong>검색 순위 문제</strong>다.</p>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">이 실험에서는 <strong>형제 청크 확장</strong>도 시도했다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">5. 결과의 흔들림</h2>
+<p style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;">같은 질문도 실행마다 <strong>1~2문항 흔들린다.</strong> 그러므로 <strong>한 번의 결과만 보고 개선 여부를 판단하면 안 된다.</strong> 회귀 비교와 자동 지표가 필요한 이유이기도 하다.</p>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 막힌 점과 해결</h2>
+<table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
+<thead>
+<tr>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">문제</th>
+<th style="border:1px solid #e5e7eb;background:#f3f4f6;padding:8px 12px;text-align:left;">해결</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">손 채점이라 버전 비교가 어려움</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">지표를 자동 계산하고, 예전 로그로 다시 계산해서 손 채점과 같은지 검증</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Supabase 팀 계정에는 스키마 생성 권한이 없음</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">코드에 박힌 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">rag</code> 스키마를 설정으로 바꾸고, 이미 있으면 만들지 않게 함</td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">DBeaver에서 "Unknown host" 오류</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Host 칸에 "Session pooler"라는 글자가 들어가 있었다</td>
+</tr>
+</tbody>
+</table>
+<h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">7. 정리</h2>
+<ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
+<li>평가는 <strong>자동 계산 + 회귀 비교</strong>로 해야 버전 간 비교가 가능하다.</li>
+<li>캐시는 <strong>키에 넣는 값이 곧 정확성</strong>이다.</li>
+<li>오거부처럼 보여도 원인은 <strong>검색 단계</strong>일 수 있다. 생성 단계만 보지 않는다.</li>
+</ul>
+</div>

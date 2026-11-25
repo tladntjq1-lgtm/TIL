@@ -14,7 +14,7 @@
 <ul style="font-size:16px;line-height:1.85;color:#1f2937;margin:0 0 16px;padding-left:24px;">
 <li>유사 오픈소스를 조사하고 비교했다. 한국어 하이브리드 검색 튜토리얼, citerag, Multi-Meta-RAG 등을 봤다.</li>
 <li>팀 통합 레퍼런스 중 "평가·재현" 파트의 분석 문서를 썼다.</li>
-<li><strong>#22 팀 저장소 초기 세팅</strong>: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.gitignore</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">requirements</code> 버전 고정, README, 협업 규칙을 정리했다.</li>
+<li><strong>#22 팀 저장소 초기 세팅</strong>: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.gitignore</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">requirements</code> 버전 고정, README, 협업 규칙을 정리했다. <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.gitignore</code>에는 PDF, 색인, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">.env</code>를 제외했다.</li>
 <li><strong>#2 인터페이스 초안(PR #32) 리뷰</strong>: API 응답과 로그 형식에 의견 13개를 남겼고 전부 반영됐다.</li>
 <li><strong>#23 FastAPI 서버 골격</strong>: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">GET /health</code>, <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">POST /agent/invoke</code>를 만들었고 테스트 11개가 통과했다.</li>
 </ul>
@@ -98,6 +98,9 @@
 <li>공식 평가는 <strong>Portal Runner가 우리 서버(<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/agent/invoke</code>)를 호출</strong>하는 방식이다.</li>
 <li>그래서 <strong>어떤 실패에도 HTTP 200 + 거부 형식</strong>으로 응답해야 한다.</li>
 <li>Runner에는 60초 시간 제한이 있어서, 60초를 넘기면 "응답 없음"으로 처리된다. 이를 막으려고 서버에 <strong>내부 마감 50초</strong>를 두고, 넘기면 거부 응답을 돌려준다. 근거 없음 문항에서는 이 거부 응답으로 점수를 받을 수 있다.</li>
+<li>평가 서버는 틀려도 500을 내지 않고 <strong>규격에 맞는 거부 응답</strong>을 돌려줘야 한다. 그래서 오류를 단계별로 나눠 <strong>HTTP 200 + 거부</strong>로 바꿨다.</li>
+<li><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">redirect_slashes=False</code></strong>: <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/health/</code>로 가는 리다이렉트도 평가기에서는 실패로 치기 때문에 이 옵션을 껐다.</li>
+<li><strong>DEV 평가기 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">eval/run_eval.py</code></strong>는 공식 규칙대로 요청마다 <strong>60초 제한</strong>을 두고, <strong>연결 실패와 5xx만 1회 재시도</strong>하며, 응답 시간의 <strong>P50/P95</strong>를 기록한다.</li>
 </ul>
 <h2 style="font-size:24px;font-weight:700;color:#1f2937;margin:48px 0 16px;padding-bottom:8px;border-bottom:2px solid #2563eb;">6. 문제와 해결</h2>
 <table style="border-collapse:collapse;width:100%;margin:0 0 20px;font-size:15px;">
@@ -112,12 +115,17 @@
 <tr>
 <td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">pydantic 2.14.4를 설치했더니 서버가 안 뜸 (<code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">DLL load failed</code>)</td>
 <td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Windows 스마트 앱 컨트롤이 최신 <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">pydantic-core</code> DLL을 차단</td>
-<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>2.14.2로 버전 고정</strong></td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>2.14.2로 버전 고정</strong>. 최신 pydantic을 막은 이유는 주석으로 남겼다</td>
 </tr>
 <tr>
-<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Windows <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">curl</code>로 한글 질문을 보내면 오류 응답</td>
-<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">curl</code>이 UTF-8이 아닌 인코딩으로 전송</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">Windows <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">curl</code>로 한글 질문을 보내면 오류 응답, 테스트가 깨짐</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">curl</code>이 한글을 UTF-8이 아닌 <strong>cp949</strong>로 전송</td>
 <td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong>Python <code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">httpx</code>로 보내면 정상</strong></td>
+</tr>
+<tr>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">/health/</code>로 가는 리다이렉트가 평가기에서 실패로 처리됨</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">평가기는 리다이렉트도 실패로 침</td>
+<td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;"><strong><code style="background:#f3f4f6;color:#be123c;padding:2px 6px;border-radius:4px;font-size:0.92em;">redirect_slashes=False</code></strong></td>
 </tr>
 <tr>
 <td style="border:1px solid #e5e7eb;padding:8px 12px;vertical-align:top;">60초를 넘기면 Runner가 "응답 없음"으로 처리</td>
